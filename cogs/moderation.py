@@ -7,9 +7,10 @@ Version: 6.5.0
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import discord
+from helpers.colors import COLOR_DEFAULT, COLOR_ERROR, COLOR_ACCENT
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
@@ -44,14 +45,14 @@ class Moderation(commands.Cog, name="moderation"):
         )
         if member.guild_permissions.administrator:
             embed = discord.Embed(
-                description="User has administrator permissions.", color=0xE02B2B
+                description="User has administrator permissions.", color=COLOR_ERROR
             )
             await context.send(embed=embed)
         else:
             try:
                 embed = discord.Embed(
                     description=f"**{member}** was kicked by **{context.author}**!",
-                    color=0xBEBEFE,
+                    color=COLOR_DEFAULT,
                 )
                 embed.add_field(name="Reason:", value=reason)
                 await context.send(embed=embed)
@@ -60,13 +61,12 @@ class Moderation(commands.Cog, name="moderation"):
                         f"You were kicked by **{context.author}** from **{context.guild.name}**!\nReason: {reason}"
                     )
                 except:
-                    # Couldn't send a message in the private messages of the user
                     pass
                 await member.kick(reason=reason)
             except:
                 embed = discord.Embed(
                     description="An error occurred while trying to kick the user. Make sure my role is above the role of the user you want to kick.",
-                    color=0xE02B2B,
+                    color=COLOR_ERROR,
                 )
                 await context.send(embed=embed)
 
@@ -97,13 +97,13 @@ class Moderation(commands.Cog, name="moderation"):
             await member.edit(nick=nickname)
             embed = discord.Embed(
                 description=f"**{member}'s** new nickname is **{nickname}**!",
-                color=0xBEBEFE,
+                color=COLOR_DEFAULT,
             )
             await context.send(embed=embed)
         except:
             embed = discord.Embed(
                 description="An error occurred while trying to change the nickname of the user. Make sure my role is above the role of the user you want to change the nickname.",
-                color=0xE02B2B,
+                color=COLOR_ERROR,
             )
             await context.send(embed=embed)
 
@@ -133,13 +133,13 @@ class Moderation(commands.Cog, name="moderation"):
         try:
             if member.guild_permissions.administrator:
                 embed = discord.Embed(
-                    description="User has administrator permissions.", color=0xE02B2B
+                    description="User has administrator permissions.", color=COLOR_ERROR
                 )
                 await context.send(embed=embed)
             else:
                 embed = discord.Embed(
                     description=f"**{member}** was banned by **{context.author}**!",
-                    color=0xBEBEFE,
+                    color=COLOR_DEFAULT,
                 )
                 embed.add_field(name="Reason:", value=reason)
                 await context.send(embed=embed)
@@ -148,14 +148,13 @@ class Moderation(commands.Cog, name="moderation"):
                         f"You were banned by **{context.author}** from **{context.guild.name}**!\nReason: {reason}"
                     )
                 except:
-                    # Couldn't send a message in the private messages of the user
                     pass
                 await member.ban(reason=reason)
         except:
             embed = discord.Embed(
                 title="Error!",
                 description="An error occurred while trying to ban the user. Make sure my role is above the role of the user you want to ban.",
-                color=0xE02B2B,
+                color=COLOR_ERROR,
             )
             await context.send(embed=embed)
 
@@ -173,7 +172,7 @@ class Moderation(commands.Cog, name="moderation"):
         if context.invoked_subcommand is None:
             embed = discord.Embed(
                 description="Please specify a subcommand.\n\n**Subcommands:**\n`add` - Add a warning to a user.\n`remove` - Remove a warning from a user.\n`list` - List all warnings of a user.",
-                color=0xE02B2B,
+                color=COLOR_ERROR,
             )
             await context.send(embed=embed)
 
@@ -204,7 +203,7 @@ class Moderation(commands.Cog, name="moderation"):
         )
         embed = discord.Embed(
             description=f"**{member}** was warned by **{context.author}**!\nTotal warns for this user: {total}",
-            color=0xBEBEFE,
+            color=COLOR_DEFAULT,
         )
         embed.add_field(name="Reason:", value=reason)
         await context.send(embed=embed)
@@ -213,7 +212,6 @@ class Moderation(commands.Cog, name="moderation"):
                 f"You were warned by **{context.author}** in **{context.guild.name}**!\nReason: {reason}"
             )
         except:
-            # Couldn't send a message in the private messages of the user
             await context.send(
                 f"{member.mention}, you were warned by **{context.author}**!\nReason: {reason}"
             )
@@ -231,7 +229,7 @@ class Moderation(commands.Cog, name="moderation"):
         self, context: Context, user: discord.User, warn_id: int
     ) -> None:
         """
-        Warns a user in his private messages.
+        Removes a warning from a user.
 
         :param context: The hybrid command context.
         :param user: The user that should get their warning removed.
@@ -243,7 +241,7 @@ class Moderation(commands.Cog, name="moderation"):
         total = await self.bot.database.remove_warn(warn_id, user.id, context.guild.id)
         embed = discord.Embed(
             description=f"I've removed the warning **#{warn_id}** from **{member}**!\nTotal warns for this user: {total}",
-            color=0xBEBEFE,
+            color=COLOR_DEFAULT,
         )
         await context.send(embed=embed)
 
@@ -261,7 +259,7 @@ class Moderation(commands.Cog, name="moderation"):
         :param user: The user you want to get the warnings of.
         """
         warnings_list = await self.bot.database.get_warnings(user.id, context.guild.id)
-        embed = discord.Embed(title=f"Warnings of {user}", color=0xBEBEFE)
+        embed = discord.Embed(title=f"Warnings of {user}", color=COLOR_DEFAULT)
         description = ""
         if len(warnings_list) == 0:
             description = "This user has no warnings."
@@ -285,13 +283,11 @@ class Moderation(commands.Cog, name="moderation"):
         :param context: The hybrid command context.
         :param amount: The number of messages that should be deleted.
         """
-        await context.send(
-            "Deleting messages..."
-        )  # Bit of a hacky way to make sure the bot responds to the interaction and doens't get a "Unknown Interaction" response
+        await context.send("Deleting messages...")
         purged_messages = await context.channel.purge(limit=amount + 1)
         embed = discord.Embed(
             description=f"**{context.author}** cleared **{len(purged_messages)-1}** messages!",
-            color=0xBEBEFE,
+            color=COLOR_DEFAULT,
         )
         await context.channel.send(embed=embed)
 
@@ -322,14 +318,14 @@ class Moderation(commands.Cog, name="moderation"):
             )
             embed = discord.Embed(
                 description=f"**{user}** (ID: {user_id}) was banned by **{context.author}**!",
-                color=0xBEBEFE,
+                color=COLOR_DEFAULT,
             )
             embed.add_field(name="Reason:", value=reason)
             await context.send(embed=embed)
         except Exception:
             embed = discord.Embed(
                 description="An error occurred while trying to ban the user. Make sure ID is an existing ID that belongs to a user.",
-                color=0xE02B2B,
+                color=COLOR_ERROR,
             )
             await context.send(embed=embed)
 
@@ -343,8 +339,9 @@ class Moderation(commands.Cog, name="moderation"):
     )
     async def archive(self, context: Context, limit: int = 10) -> None:
         """
-        Archives in a text file the last messages with a chosen limit of messages. This command requires the MESSAGE_CONTENT intent to work properly.
+        Archives in a text file the last messages with a chosen limit of messages.
 
+        :param context: The hybrid command context.
         :param limit: The limit of messages that should be archived. Default is 10.
         """
         log_file = f"{context.channel.id}.log"
@@ -370,6 +367,101 @@ class Moderation(commands.Cog, name="moderation"):
         await context.send(file=f)
         os.remove(log_file)
 
+    @commands.hybrid_command(
+        name="mute",
+        description="Temporarily timeout a user.",
+    )
+    @commands.has_permissions(moderate_members=True)
+    @commands.bot_has_permissions(moderate_members=True)
+    @app_commands.describe(
+        user="The user that should be muted.",
+        duration="Duration of the mute in minutes.",
+        reason="The reason why the user should be muted.",
+    )
+    async def mute(
+        self, 
+        context: Context, 
+        user: discord.User, 
+        duration: int, 
+        *, 
+        reason: str = "Not specified"
+    ) -> None:
+        """
+        Temporarily timeout a user.
+
+        :param context: The hybrid command context.
+        :param user: The user that should be muted.
+        :param duration: The duration in minutes.
+        :param reason: The reason for the mute.
+        """
+        member = context.guild.get_member(user.id) or await context.guild.fetch_member(user.id)
+        
+        if member.id == context.author.id:
+            embed = discord.Embed(description="You cannot mute yourself.", color=COLOR_ERROR)
+            await context.send(embed=embed, ephemeral=True)
+            return
+
+        if member.top_role >= context.author.top_role and context.guild.owner_id != context.author.id:
+            embed = discord.Embed(description="You cannot mute someone with a higher or equal role.", color=COLOR_ERROR)
+            await context.send(embed=embed, ephemeral=True)
+            return
+
+        try:
+            delta = timedelta(minutes=duration)
+            await member.timeout(delta, reason=f"Action by {context.author} | Reason: {reason}")
+            
+            embed = discord.Embed(
+                description=f"**{member}** was muted by **{context.author}** for **{duration} minute(s)**!",
+                color=COLOR_DEFAULT,
+            )
+            embed.add_field(name="Reason:", value=reason)
+            await context.send(embed=embed)
+            
+            try:
+                await member.send(
+                    f"You were muted by **{context.author}** in **{context.guild.name}** for **{duration} minute(s)**!\nReason: {reason}"
+                )
+            except:
+                pass
+        except Exception:
+            embed = discord.Embed(
+                description="An error occurred while trying to mute the user. Make sure my role is above the role of the user you want to mute.",
+                color=COLOR_ERROR,
+            )
+            await context.send(embed=embed)
+
+    @commands.hybrid_command(
+        name="unmute",
+        description="Remove a timeout from a user.",
+    )
+    @commands.has_permissions(moderate_members=True)
+    @commands.bot_has_permissions(moderate_members=True)
+    @app_commands.describe(
+        user="The user that should be unmuted.",
+    )
+    async def unmute(
+        self, context: Context, user: discord.User
+    ) -> None:
+        """
+        Remove a timeout from a user.
+
+        :param context: The hybrid command context.
+        :param user: The user that should be unmuted.
+        """
+        member = context.guild.get_member(user.id) or await context.guild.fetch_member(user.id)
+        try:
+            await member.timeout(None, reason=f"Unmuted by {context.author}")
+            embed = discord.Embed(
+                description=f"**{member}** was unmuted by **{context.author}**!",
+                color=COLOR_DEFAULT,
+            )
+            await context.send(embed=embed)
+        except Exception:
+            embed = discord.Embed(
+                description="An error occurred while trying to unmute the user.",
+                color=COLOR_ERROR,
+            )
+            await context.send(embed=embed)
 
 async def setup(bot) -> None:
     await bot.add_cog(Moderation(bot))

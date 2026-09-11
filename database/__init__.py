@@ -94,3 +94,63 @@ class DatabaseManager:
             for row in result:
                 result_list.append(row)
             return result_list
+
+    async def set_secnews_channel(self, server_id: int, channel_id: int) -> None:
+        """
+        This function will set (or replace) the channel used for security news in a server.
+
+        :param server_id: The ID of the server to configure.
+        :param channel_id: The ID of the channel where news should be sent.
+        """
+        await self.connection.execute(
+            "INSERT INTO secnews_channels(server_id, channel_id) VALUES (?, ?) "
+            "ON CONFLICT(server_id) DO UPDATE SET channel_id=excluded.channel_id",
+            (
+                server_id,
+                channel_id,
+            ),
+        )
+        await self.connection.commit()
+
+    async def get_secnews_channels(self) -> dict:
+        """
+        This function will get all the configured security news channels.
+
+        :return: A dict mapping server_id -> channel_id.
+        """
+        rows = await self.connection.execute(
+            "SELECT server_id, channel_id FROM secnews_channels"
+        )
+        async with rows as cursor:
+            result = await cursor.fetchall()
+            return {int(row[0]): int(row[1]) for row in result}
+
+    async def set_secnews_last_seen(self, feed_url: str, entry_id: str) -> None:
+        """
+        This function will remember the last article seen for a given RSS feed.
+
+        :param feed_url: The URL of the feed.
+        :param entry_id: The ID (or link) of the latest article posted for that feed.
+        """
+        await self.connection.execute(
+            "INSERT INTO secnews_last_seen(feed_url, entry_id) VALUES (?, ?) "
+            "ON CONFLICT(feed_url) DO UPDATE SET entry_id=excluded.entry_id",
+            (
+                feed_url,
+                entry_id,
+            ),
+        )
+        await self.connection.commit()
+
+    async def get_secnews_last_seen(self) -> dict:
+        """
+        This function will get the last-seen article ID for every RSS feed tracked so far.
+
+        :return: A dict mapping feed_url -> entry_id.
+        """
+        rows = await self.connection.execute(
+            "SELECT feed_url, entry_id FROM secnews_last_seen"
+        )
+        async with rows as cursor:
+            result = await cursor.fetchall()
+            return {row[0]: row[1] for row in result}
