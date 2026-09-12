@@ -9,11 +9,11 @@ from discord.ext.commands import Context
 from helpers.colors import COLOR_ACCENT, COLOR_DEFAULT, COLOR_ERROR
 
 
-class TicketModal(discord.ui.Modal, title="Ouvrir un ticket"):
-    raison = discord.ui.TextInput(
-        label="Raison du ticket",
+class TicketModal(discord.ui.Modal, title="Open a ticket"):
+    reason = discord.ui.TextInput(
+        label="Reason for the ticket",
         style=discord.TextStyle.paragraph,
-        placeholder="Expliquez brièvement votre demande...",
+        placeholder="Briefly explain your request...",
         max_length=500,
         required=True,
     )
@@ -28,7 +28,7 @@ class TicketModal(discord.ui.Modal, title="Ouvrir un ticket"):
         if not config or not config["category_id"]:
             await interaction.followup.send(
                 embed=discord.Embed(
-                    description="Le système de tickets n'est pas configuré. Contactez un administrateur.",
+                    description="The ticket system is not configured. Please contact an administrator.",
                     color=COLOR_ERROR,
                 ),
                 ephemeral=True,
@@ -39,7 +39,7 @@ class TicketModal(discord.ui.Modal, title="Ouvrir un ticket"):
         if existing:
             await interaction.followup.send(
                 embed=discord.Embed(
-                    description=f"Vous avez déjà un ticket ouvert : <#{existing['channel_id']}>",
+                    description=f"You already have an open ticket: <#{existing['channel_id']}>",
                     color=COLOR_ERROR,
                 ),
                 ephemeral=True,
@@ -50,7 +50,7 @@ class TicketModal(discord.ui.Modal, title="Ouvrir un ticket"):
         if not category or not isinstance(category, discord.CategoryChannel):
             await interaction.followup.send(
                 embed=discord.Embed(
-                    description="La catégorie des tickets est introuvable. Contactez un administrateur.",
+                    description="The ticket category could not be found. Please contact an administrator.",
                     color=COLOR_ERROR,
                 ),
                 ephemeral=True,
@@ -77,29 +77,29 @@ class TicketModal(discord.ui.Modal, title="Ouvrir un ticket"):
         channel = await category.create_text_channel(
             name=f"ticket-{user.name}",
             overwrites=overwrites,
-            topic=f"Ticket de {user} | Raison : {self.raison.value[:100]}",
+            topic=f"Ticket from {user} | Reason: {self.reason.value[:100]}",
         )
 
         await interaction.client.database.create_ticket(
-            guild.id, channel.id, user.id, self.raison.value
+            guild.id, channel.id, user.id, self.reason.value
         )
 
         embed = discord.Embed(
-            title="Ticket ouvert",
-            description=f"**Raison :** {self.raison.value}",
+            title="Ticket opened",
+            description=f"**Reason:** {self.reason.value}",
             color=COLOR_ACCENT,
         )
-        embed.set_footer(text=f"Ouvert par {user} • {channel.id}")
+        embed.set_footer(text=f"Opened by {user} • {channel.id}")
 
         await channel.send(
-            content=f"{user.mention} bienvenue dans votre ticket. Un membre du staff va vous répondre.",
+            content=f"{user.mention} welcome to your ticket. A staff member will reply shortly.",
             embed=embed,
             view=TicketControlView(),
         )
 
         await interaction.followup.send(
             embed=discord.Embed(
-                description=f"Votre ticket a été créé : {channel.mention}",
+                description=f"Your ticket has been created: {channel.mention}",
                 color=COLOR_DEFAULT,
             ),
             ephemeral=True,
@@ -109,11 +109,11 @@ class TicketModal(discord.ui.Modal, title="Ouvrir un ticket"):
             log_channel = guild.get_channel(config["log_channel_id"])
             if log_channel:
                 log_embed = discord.Embed(
-                    title="Nouveau ticket",
+                    title="New ticket",
                     description=(
-                        f"**Utilisateur :** {user.mention} ({user.id})\n"
-                        f"**Salon :** {channel.mention}\n"
-                        f"**Raison :** {self.raison.value}"
+                        f"**User:** {user.mention} ({user.id})\n"
+                        f"**Channel:** {channel.mention}\n"
+                        f"**Reason:** {self.reason.value}"
                     ),
                     color=COLOR_DEFAULT,
                 )
@@ -125,7 +125,7 @@ class TicketPanelView(discord.ui.View):
         super().__init__(timeout=None)
 
     @discord.ui.button(
-        label="Ouvrir un ticket",
+        label="Open a ticket",
         style=discord.ButtonStyle.green,
         custom_id="ticket_open_button",
     )
@@ -138,30 +138,30 @@ class TicketControlView(discord.ui.View):
         super().__init__(timeout=None)
 
     @discord.ui.button(
-        label="Fermer",
+        label="Close",
         style=discord.ButtonStyle.red,
         custom_id="ticket_close_button",
     )
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         ticket = await interaction.client.database.get_ticket(interaction.channel.id)
         if not ticket:
-            await interaction.response.send_message("Ce salon n'est pas un ticket.", ephemeral=True)
+            await interaction.response.send_message("This channel is not a ticket.", ephemeral=True)
             return
 
         await interaction.response.defer()
         await interaction.client.database.close_ticket(interaction.channel.id)
         await self.generate_and_send_transcript(interaction, ticket)
-        await interaction.channel.delete(reason=f"Ticket fermé par {interaction.user}")
+        await interaction.channel.delete(reason=f"Ticket closed by {interaction.user}")
 
     @discord.ui.button(
-        label="Transcription",
+        label="Transcript",
         style=discord.ButtonStyle.blurple,
         custom_id="ticket_transcript_button",
     )
     async def transcript(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         ticket = await interaction.client.database.get_ticket(interaction.channel.id)
         if not ticket:
-            await interaction.response.send_message("Ce salon n'est pas un ticket.", ephemeral=True)
+            await interaction.response.send_message("This channel is not a ticket.", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
@@ -170,7 +170,7 @@ class TicketControlView(discord.ui.View):
         if transcript_file:
             await interaction.followup.send(file=transcript_file, ephemeral=True)
         else:
-            await interaction.followup.send("Impossible de générer la transcription.", ephemeral=True)
+            await interaction.followup.send("Could not generate the transcript.", ephemeral=True)
 
     async def generate_and_send_transcript(self, interaction: discord.Interaction, ticket: dict) -> None:
         config = await interaction.client.database.get_ticket_config(interaction.guild.id)
@@ -185,11 +185,11 @@ class TicketControlView(discord.ui.View):
             return
 
         embed = discord.Embed(
-            title="Ticket fermé",
+            title="Ticket closed",
             description=(
-                f"**Ticket :** {interaction.channel.name}\n"
-                f"**Ouvert par :** <@{ticket['user_id']}>\n"
-                f"**Raison :** {ticket['reason']}"
+                f"**Ticket:** {interaction.channel.name}\n"
+                f"**Opened by:** <@{ticket['user_id']}>\n"
+                f"**Reason:** {ticket['reason']}"
             ),
             color=COLOR_ERROR,
         )
@@ -224,7 +224,7 @@ class Tickets(commands.Cog, name="tickets"):
         config = await self.bot.database.get_ticket_config(context.guild.id)
         if not config:
             embed = discord.Embed(
-                description="Aucune configuration. Utilisez les sous-commandes pour configurer.",
+                description="No configuration found. Use the subcommands to set it up.",
                 color=COLOR_ERROR,
             )
             await context.send(embed=embed)
@@ -234,10 +234,10 @@ class Tickets(commands.Cog, name="tickets"):
         log_channel = context.guild.get_channel(config["log_channel_id"]) if config["log_channel_id"] else None
         support_role = context.guild.get_role(config["support_role_id"]) if config["support_role_id"] else None
 
-        embed = discord.Embed(title="Configuration des tickets", color=COLOR_ACCENT)
-        embed.add_field(name="Catégorie", value=category.mention if category else "❌ Non défini", inline=False)
-        embed.add_field(name="Salon de logs", value=log_channel.mention if log_channel else "❌ Non défini", inline=False)
-        embed.add_field(name="Rôle support", value=support_role.mention if support_role else "❌ Non défini", inline=False)
+        embed = discord.Embed(title="Ticket configuration", color=COLOR_ACCENT)
+        embed.add_field(name="Category", value=category.mention if category else "❌ Not set", inline=False)
+        embed.add_field(name="Log channel", value=log_channel.mention if log_channel else "❌ Not set", inline=False)
+        embed.add_field(name="Support role", value=support_role.mention if support_role else "❌ Not set", inline=False)
         await context.send(embed=embed)
 
     @ticket_config.command(name="category", description="Set the category where tickets are created.")
@@ -245,7 +245,7 @@ class Tickets(commands.Cog, name="tickets"):
     async def ticket_config_category(self, context: Context, category: discord.CategoryChannel) -> None:
         await self.bot.database.set_ticket_config(context.guild.id, category_id=category.id)
         embed = discord.Embed(
-            description=f"Catégorie des tickets définie sur {category.mention}.",
+            description=f"Ticket category set to {category.mention}.",
             color=COLOR_ACCENT,
         )
         await context.send(embed=embed)
@@ -255,7 +255,7 @@ class Tickets(commands.Cog, name="tickets"):
     async def ticket_config_logs(self, context: Context, channel: discord.TextChannel) -> None:
         await self.bot.database.set_ticket_config(context.guild.id, log_channel_id=channel.id)
         embed = discord.Embed(
-            description=f"Salon de logs défini sur {channel.mention}.",
+            description=f"Log channel set to {channel.mention}.",
             color=COLOR_ACCENT,
         )
         await context.send(embed=embed)
@@ -265,7 +265,7 @@ class Tickets(commands.Cog, name="tickets"):
     async def ticket_config_support(self, context: Context, role: discord.Role) -> None:
         await self.bot.database.set_ticket_config(context.guild.id, support_role_id=role.id)
         embed = discord.Embed(
-            description=f"Rôle support défini sur {role.mention}.",
+            description=f"Support role set to {role.mention}.",
             color=COLOR_ACCENT,
         )
         await context.send(embed=embed)
@@ -275,21 +275,21 @@ class Tickets(commands.Cog, name="tickets"):
     async def ticket_config_reset(self, context: Context) -> None:
         await self.bot.database.reset_ticket_config(context.guild.id)
         embed = discord.Embed(
-            description="Configuration des tickets réinitialisée.",
+            description="Ticket configuration has been reset.",
             color=COLOR_ACCENT,
         )
         await context.send(embed=embed)
 
     @commands.hybrid_command(
         name="ticket_panel",
-        description="Poste le panneau d'ouverture des tickets dans le salon actuel.",
+        description="Post the ticket panel in the current channel.",
     )
     @commands.has_permissions(administrator=True)
     async def ticket_panel(self, context: Context) -> None:
         config = await self.bot.database.get_ticket_config(context.guild.id)
         if not config or not config["category_id"]:
             embed = discord.Embed(
-                description="Le système de tickets n'est pas configuré. Utilisez `/ticket_config category`.",
+                description="The ticket system is not configured. Use `/ticket_config category` first.",
                 color=COLOR_ERROR,
             )
             await context.send(embed=embed)
@@ -297,34 +297,34 @@ class Tickets(commands.Cog, name="tickets"):
 
         embed = discord.Embed(
             title="Support",
-            description="Cliquez sur le bouton ci-dessous pour ouvrir un ticket.\nUn membre du staff vous répondra dans un salon privé.",
+            description="Click the button below to open a ticket.\nA staff member will reply in a private channel.",
             color=COLOR_ACCENT,
         )
-        embed.set_footer(text="Système de tickets")
+        embed.set_footer(text="Ticket system")
         await context.send(embed=embed, view=TicketPanelView())
 
-    @commands.hybrid_command(name="ticket_close", description="Ferme le ticket actuel.")
+    @commands.hybrid_command(name="ticket_close", description="Close the current ticket.")
     async def ticket_close(self, context: Context) -> None:
         ticket = await self.bot.database.get_ticket(context.channel.id)
         if not ticket:
             await context.send(
-                embed=discord.Embed(description="Ce salon n'est pas un ticket.", color=COLOR_ERROR)
+                embed=discord.Embed(description="This channel is not a ticket.", color=COLOR_ERROR)
             )
             return
 
         await self.bot.database.close_ticket(context.channel.id)
         view = TicketControlView()
         await view.generate_and_send_transcript(context, ticket)
-        await context.channel.delete(reason=f"Ticket fermé par {context.author}")
+        await context.channel.delete(reason=f"Ticket closed by {context.author}")
 
-    @commands.hybrid_command(name="ticket_add", description="Ajoute un membre au ticket actuel.")
+    @commands.hybrid_command(name="ticket_add", description="Add a member to the current ticket.")
     @commands.has_permissions(manage_channels=True)
-    @app_commands.describe(member="Le membre à ajouter au ticket")
+    @app_commands.describe(member="The member to add to the ticket")
     async def ticket_add(self, context: Context, member: discord.Member) -> None:
         ticket = await self.bot.database.get_ticket(context.channel.id)
         if not ticket:
             await context.send(
-                embed=discord.Embed(description="Ce salon n'est pas un ticket.", color=COLOR_ERROR)
+                embed=discord.Embed(description="This channel is not a ticket.", color=COLOR_ERROR)
             )
             return
 
@@ -332,24 +332,24 @@ class Tickets(commands.Cog, name="tickets"):
             member, view_channel=True, send_messages=True, read_message_history=True
         )
         embed = discord.Embed(
-            description=f"{member.mention} a été ajouté au ticket.", color=COLOR_DEFAULT
+            description=f"{member.mention} has been added to the ticket.", color=COLOR_DEFAULT
         )
         await context.send(embed=embed)
 
-    @commands.hybrid_command(name="ticket_remove", description="Retire un membre du ticket actuel.")
+    @commands.hybrid_command(name="ticket_remove", description="Remove a member from the current ticket.")
     @commands.has_permissions(manage_channels=True)
-    @app_commands.describe(member="Le membre à retirer du ticket")
+    @app_commands.describe(member="The member to remove from the ticket")
     async def ticket_remove(self, context: Context, member: discord.Member) -> None:
         ticket = await self.bot.database.get_ticket(context.channel.id)
         if not ticket:
             await context.send(
-                embed=discord.Embed(description="Ce salon n'est pas un ticket.", color=COLOR_ERROR)
+                embed=discord.Embed(description="This channel is not a ticket.", color=COLOR_ERROR)
             )
             return
 
         await context.channel.set_permissions(member, overwrite=None)
         embed = discord.Embed(
-            description=f"{member.mention} a été retiré du ticket.", color=COLOR_DEFAULT
+            description=f"{member.mention} has been removed from the ticket.", color=COLOR_DEFAULT
         )
         await context.send(embed=embed)
 
