@@ -1,5 +1,7 @@
 import asyncio
+import calendar
 import logging
+import time
 
 import discord
 import feedparser
@@ -10,6 +12,7 @@ from helpers.colors import COLOR_ACCENT
 log = logging.getLogger("DarkSide.SecurityNews")
 
 RSS_FEEDS = {
+    # Original sources
     "The Hacker News": "https://thehackernews.com/rss.xml",
     "BleepingComputer": "https://www.bleepingcomputer.com/feed/",
     "Krebs on Security": "https://krebsonsecurity.com/feed/",
@@ -40,7 +43,34 @@ RSS_FEEDS = {
     "Tripwire State of Security": "https://www.tripwire.com/state-of-security/feed",
     "IBM Security Intelligence": "https://securityintelligence.com/feed/",
     "Recorded Future Blog": "https://www.recordedfuture.com/feed",
+    # Additional sources
+    "SentinelOne Blog": "https://www.sentinelone.com/blog/feed/",
+    "Check Point Research": "https://research.checkpoint.com/feed/",
+    "ESET WeLiveSecurity": "https://www.welivesecurity.com/feed/",
+    "Tenable Blog": "https://www.tenable.com/blog/feed",
+    "Rapid7 Blog": "https://blog.rapid7.com/rss/",
+    "Qualys Blog": "https://blog.qualys.com/feed",
+    "Kaspersky Blog": "https://www.kaspersky.com/blog/feed/",
+    "Security Affairs": "https://securityaffairs.com/feed",
+    "HackRead": "https://www.hackread.com/feed/",
+    "GBHackers": "https://gbhackers.com/feed/",
+    "Cybersecurity News": "https://cybersecuritynews.com/feed/",
+    "Latest Hacking News": "https://latesthackingnews.com/feed/",
+    "KitPloit": "https://www.kitploit.com/feed/",
+    "The Daily Swig": "https://portswigger.net/daily-swig/rss",
+    "PortSwigger Research": "https://portswigger.net/research/rss",
+    "Google Online Security Blog": "https://security.googleblog.com/feeds/posts/default",
+    "Google Project Zero": "https://googleprojectzero.blogspot.com/feeds/posts/default",
+    "Snyk Blog": "https://snyk.io/blog/feed/",
+    "Aqua Security": "https://blog.aquasec.com/rss.xml",
+    "Wiz Blog": "https://www.wiz.io/blog/rss.xml",
+    "Zero Day Initiative": "https://www.zerodayinitiative.com/blog?format=rss",
+    "HackerOne": "https://www.hackerone.com/blog.rss",
+    "Bugcrowd": "https://www.bugcrowd.com/blog/feed/",
+    "Darknet Diaries": "https://feeds.megaphone.fm/darknetdiaries",
+    "Bishop Fox Blog": "https://bishopfox.com/blog/rss.xml",
 }
+
 
 class SecurityNews(commands.Cog, name="security_news"):
     def __init__(self, bot: commands.Bot) -> None:
@@ -52,14 +82,18 @@ class SecurityNews(commands.Cog, name="security_news"):
     def cog_unload(self) -> None:
         self.fetch_security_news.cancel()
 
-    @commands.hybrid_group(name="secnews", invoke_without_command=True, description="Manage cybersecurity news feeds.")
+    @commands.hybrid_group(
+        name="secnews",
+        invoke_without_command=True,
+        description="Manage cybersecurity news feeds.",
+    )
     @commands.has_permissions(administrator=True)
     async def secnews(self, ctx: commands.Context) -> None:
         prefix = ctx.prefix
         embed = discord.Embed(
             title="Configuration - Security News",
             description=f"Use `{prefix}secnews setchannel #channel` to set the news feed channel.",
-            color=COLOR_ACCENT
+            color=COLOR_ACCENT,
         )
         await ctx.send(embed=embed, delete_after=20)
 
@@ -71,7 +105,7 @@ class SecurityNews(commands.Cog, name="security_news"):
         embed = discord.Embed(
             title="Channel Configured",
             description=f"Latest cyber news will now be sent to {channel.mention}.",
-            color=COLOR_ACCENT
+            color=COLOR_ACCENT,
         )
         await ctx.send(embed=embed)
 
@@ -81,65 +115,105 @@ class SecurityNews(commands.Cog, name="security_news"):
         if ctx.guild.id not in self._target_channels:
             embed = discord.Embed(
                 description="No channel is configured yet. Use `secnews setchannel #channel` first.",
-                color=discord.Color.red()
+                color=discord.Color.red(),
             )
             await ctx.send(embed=embed)
             return
+
         await ctx.send("Checking feeds now, this may take a few seconds...", delete_after=10)
         await self.fetch_security_news()
         embed = discord.Embed(
             description="Feed check complete. If no new article showed up, every feed was already up to date.",
-            color=COLOR_ACCENT
+            color=COLOR_ACCENT,
         )
         await ctx.send(embed=embed)
 
-    @tasks.loop(hours=2)
+    @tasks.loop(minutes=10)
     async def fetch_security_news(self) -> None:
         if not self._target_channels:
             return
 
+        oldest_article: dict | None = None
+
         for source_name, feed_url in RSS_FEEDS.items():
             try:
-                # Offload blocking IO to a thread to prevent bot freezing
                 feed = await asyncio.to_thread(feedparser.parse, feed_url)
                 if not feed.entries:
                     continue
 
                 last_seen_id = self._last_seen.get(feed_url)
-                new_entries = []
-                for entry in feed.entries:
-                    entry_id = entry.get("id", entry.get("link"))
-                    if entry_id == last_seen_id:
-                        break
-                    new_entries.append(entry)
-
-                if not new_entries:
-                    continue
-
-                newest_id = new_entries[0].get("id", new_entries[0].get("link"))
-                self._last_seen[feed_url] = newest_id
-                await self.bot.database.set_secnews_last_seen(feed_url, newest_id)
 
                 if last_seen_id is None:
-                    new_entries = new_entries[:1]
+                    newest = feed.entries[0]
+                    newest_id = newest.get("id") or newest.get("link")
+                    if newest_id:
+                        self._last_seen[feed_url] = newest_id
+                        await self.bot.database.set_secnews_last_seen(feed_url, newest_id)
+                    continue
 
-                for entry in reversed(new_entries):
-                    summary = getattr(entry, "summary", "")
-                    embed = discord.Embed(
-                        title=entry.title,
-                        url=entry.link,
-                        description=f"{summary[:350]}...\n\n[Read full article]({entry.link})",
-                        color=COLOR_ACCENT
-                    )
-                    embed.set_footer(text=f"Source: {source_name} | DarkSide SecIntel")
+                oldest_unposted = None
+                for entry in feed.entries:
+                    entry_id = entry.get("id") or entry.get("link")
+                    if not entry_id:
+                        continue
+                    if entry_id == last_seen_id:
+                        break
+                    oldest_unposted = entry
 
-                    for guild_id, channel_id in self._target_channels.items():
-                        channel = self.bot.get_channel(channel_id)
-                        if channel:
-                            await channel.send(embed=embed)
+                if oldest_unposted is None:
+                    continue
+
+                entry_id = oldest_unposted.get("id") or oldest_unposted.get("link")
+                if not entry_id:
+                    continue
+
+                pub_date = (
+                    oldest_unposted.get("published_parsed")
+                    or oldest_unposted.get("updated_parsed")
+                )
+                pub_timestamp = calendar.timegm(pub_date) if pub_date else time.time()
+
+                if oldest_article is None or pub_timestamp < oldest_article["timestamp"]:
+                    oldest_article = {
+                        "source_name": source_name,
+                        "feed_url": feed_url,
+                        "entry": oldest_unposted,
+                        "entry_id": entry_id,
+                        "timestamp": pub_timestamp,
+                    }
 
             except Exception as e:
                 log.error(f"Error while fetching '{source_name}' RSS feed: {e}")
+
+        if oldest_article is None:
+            return
+
+        entry = oldest_article["entry"]
+        summary = getattr(entry, "summary", "")
+        link = getattr(entry, "link", "")
+        title = getattr(entry, "title", "Untitled")
+
+        embed = discord.Embed(
+            title=title,
+            url=link,
+            description=f"{summary[:350]}...\n\n[Read full article]({link})",
+            color=COLOR_ACCENT,
+        )
+        embed.set_footer(text=f"Source: {oldest_article['source_name']} | DarkSide SecIntel")
+
+        for guild_id, channel_id in self._target_channels.items():
+            channel = self.bot.get_channel(channel_id)
+            if not channel:
+                continue
+            try:
+                await channel.send(embed=embed)
+            except Exception as e:
+                log.error(f"Failed to send news to channel {channel_id}: {e}")
+
+        self._last_seen[oldest_article["feed_url"]] = oldest_article["entry_id"]
+        await self.bot.database.set_secnews_last_seen(
+            oldest_article["feed_url"], oldest_article["entry_id"]
+        )
 
     @fetch_security_news.before_loop
     async def before_fetch_security_news(self) -> None:
