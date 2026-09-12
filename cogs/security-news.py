@@ -1,8 +1,11 @@
-import discord
-from discord.ext import commands, tasks
-from helpers.colors import COLOR_ACCENT
-import feedparser
+import asyncio
 import logging
+
+import discord
+import feedparser
+from discord.ext import commands, tasks
+
+from helpers.colors import COLOR_ACCENT
 
 log = logging.getLogger("DarkSide.SecurityNews")
 
@@ -49,14 +52,9 @@ class SecurityNews(commands.Cog, name="security_news"):
     def cog_unload(self) -> None:
         self.fetch_security_news.cancel()
 
-    @commands.hybrid_group(
-        name="secnews",
-        invoke_without_command=True,
-        description="Manage cybersecurity news feeds.",
-    )
+    @commands.hybrid_group(name="secnews", invoke_without_command=True, description="Manage cybersecurity news feeds.")
     @commands.has_permissions(administrator=True)
     async def secnews(self, ctx: commands.Context) -> None:
-        """Manage cybersecurity news feeds."""
         prefix = ctx.prefix
         embed = discord.Embed(
             title="Configuration - Security News",
@@ -68,10 +66,8 @@ class SecurityNews(commands.Cog, name="security_news"):
     @secnews.command(name="setchannel", description="Set the channel where security news will be posted.")
     @commands.has_permissions(administrator=True)
     async def secnews_setchannel(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
-        """Configure the target channel for cyber alerts."""
         await self.bot.database.set_secnews_channel(ctx.guild.id, channel.id)
         self._target_channels[ctx.guild.id] = channel.id
-        
         embed = discord.Embed(
             title="Channel Configured",
             description=f"Latest cyber news will now be sent to {channel.mention}.",
@@ -82,7 +78,6 @@ class SecurityNews(commands.Cog, name="security_news"):
     @secnews.command(name="test", description="Force an immediate check of all security news feeds.")
     @commands.has_permissions(administrator=True)
     async def secnews_test(self, ctx: commands.Context) -> None:
-        """Manually trigger a feed check, useful to verify the setup without waiting for the next cycle."""
         if ctx.guild.id not in self._target_channels:
             embed = discord.Embed(
                 description="No channel is configured yet. Use `secnews setchannel #channel` first.",
@@ -90,7 +85,6 @@ class SecurityNews(commands.Cog, name="security_news"):
             )
             await ctx.send(embed=embed)
             return
-
         await ctx.send("Checking feeds now, this may take a few seconds...", delete_after=10)
         await self.fetch_security_news()
         embed = discord.Embed(
@@ -106,7 +100,8 @@ class SecurityNews(commands.Cog, name="security_news"):
 
         for source_name, feed_url in RSS_FEEDS.items():
             try:
-                feed = feedparser.parse(feed_url)
+                # Offload blocking IO to a thread to prevent bot freezing
+                feed = await asyncio.to_thread(feedparser.parse, feed_url)
                 if not feed.entries:
                     continue
 
@@ -121,13 +116,10 @@ class SecurityNews(commands.Cog, name="security_news"):
                 if not new_entries:
                     continue
 
-                # Remember the newest entry so we don't repost it next time.
                 newest_id = new_entries[0].get("id", new_entries[0].get("link"))
                 self._last_seen[feed_url] = newest_id
                 await self.bot.database.set_secnews_last_seen(feed_url, newest_id)
 
-                # On the very first run for a feed, only post the latest article
-                # instead of flooding the channel with the whole backlog.
                 if last_seen_id is None:
                     new_entries = new_entries[:1]
 
@@ -143,9 +135,8 @@ class SecurityNews(commands.Cog, name="security_news"):
 
                     for guild_id, channel_id in self._target_channels.items():
                         channel = self.bot.get_channel(channel_id)
-                        if not channel:
-                            continue
-                        await channel.send(embed=embed)
+                        if channel:
+                            await channel.send(embed=embed)
 
             except Exception as e:
                 log.error(f"Error while fetching '{source_name}' RSS feed: {e}")
@@ -153,10 +144,9 @@ class SecurityNews(commands.Cog, name="security_news"):
     @fetch_security_news.before_loop
     async def before_fetch_security_news(self) -> None:
         await self.bot.wait_until_ready()
-        # bot.database is only assigned once setup_hook finishes, which happens
-        # before the READY event fires, so it's safe to read from here.
         self._target_channels = await self.bot.database.get_secnews_channels()
         self._last_seen = await self.bot.database.get_secnews_last_seen()
+
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(SecurityNews(bot))
