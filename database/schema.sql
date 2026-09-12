@@ -16,3 +16,8 @@ CREATE TABLE IF NOT EXISTS `secnews_last_seen` (
   `feed_url` varchar(255) NOT NULL PRIMARY KEY,
   `entry_id` varchar(500) NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS `ai_channels` (
+  `server_id` varchar(20) NOT NULL PRIMARY KEY,
+  `channel_id` varchar(20) NOT NULL
+);
