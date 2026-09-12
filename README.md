@@ -111,16 +111,5 @@ To use the AI, simply **ping the bot** with your question, or **reply to one of 
 | `botinfo` | Display CPU, RAM, uptime, and system info. |
 | `shutdown` | Shut down the bot. |
 
-## Setup
-
-### Prerequisites
-- Python 3.10 or higher
-- A Discord bot token ([Discord Developer Portal](https://discord.com/developers/applications))
-- A Groq API key ([Groq Console](https://console.groq.com/)) for the AI features
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/darkside-protect.git
-   cd darkside-protect
+# LICENSE
+This project is licensed under the Apache License 2.0 - see the LICENSE.md file for details.
