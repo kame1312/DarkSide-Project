@@ -75,10 +75,11 @@ class DiscordBot(commands.Bot):
         self.bot_prefix = os.getenv("PREFIX")
         self.invite_link = os.getenv("INVITE_LINK")
         self.start_time = time.time()
+        self.db_filename = os.getenv("DB_FILENAME", "database.db")
 
     async def init_db(self) -> None:
         async with aiosqlite.connect(
-            f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
+            f"{os.path.realpath(os.path.dirname(__file__))}/database/{self.db_filename}"
         ) as db:
             with open(
                 f"{os.path.realpath(os.path.dirname(__file__))}/database/schema.sql",
@@ -103,12 +104,13 @@ class DiscordBot(commands.Bot):
         self.logger.info(f"discord.py API version: {discord.__version__}")
         self.logger.info(f"Python version: {platform.python_version()}")
         self.logger.info(f"Running on: {platform.system()} {platform.release()} ({os.name})")
+        self.logger.info(f"Using database file: {self.db_filename}")
         self.logger.info("-------------------")
         await self.init_db()
         await self.load_cogs()
         self.database = DatabaseManager(
             connection=await aiosqlite.connect(
-                f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
+                f"{os.path.realpath(os.path.dirname(__file__))}/database/{self.db_filename}"
             )
         )
 

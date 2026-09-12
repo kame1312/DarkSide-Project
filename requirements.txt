@@ -5,3 +5,4 @@ discord.py==2.7.1
 python-dotenv
 feedparser
 openai
+chat-exporter

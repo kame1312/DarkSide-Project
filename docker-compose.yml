@@ -2,14 +2,12 @@ services:
   discord-bot:
     build: .
     image: python-discord-bot-template
+    container_name: darkside-bot-prod
     env_file:
-      - .env
+      - .env.prod
     volumes:
       - ./database:/bot/database
       - ./discord.log:/bot/discord.log
-
-    # Alternatively you can set the environment variables as such:
-    # /!\ The token shouldn't be written here, as this file is not ignored from Git /!\
-    # environment:
-    #   - PREFIX=YOUR_BOT_PREFIX_HERE
-    #   - INVITE_LINK=YOUR_BOT_INVITE_LINK_HERE
+    # Ajoute ces lignes pour ignorer les conteneurs des autres projets
+    labels:
+      com.docker.compose.project: darkside-prod
