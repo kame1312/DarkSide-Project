@@ -1,38 +1,35 @@
-🛡️ DarkSide Protect
+# DarkSide Protect
 
-    A multifunctional Discord bot built for server security, moderation, and management.
+A multifunctional Discord bot built with `discord.py` that provides robust moderation tools, comprehensive server information, owner utilities, and an automated cybersecurity news feed system.
 
-🚀 Features
+## Features
 
-    🔒 Advanced Moderation: Fast and efficient moderation tools to keep the server clean.
+### 🛡️ Moderation
+- **Kick / Ban / Hackban**: Manage members with detailed reasons and DM notifications.
+- **Nickname Management**: Change or reset member nicknames.
+- **Warning System**: Add, remove, and list warnings for users (backed by SQLite).
+- **Purge**: Bulk delete messages from a channel.
+- **Archive**: Save the last messages of a channel into a text file.
+- **Mute / Unmute**: Temporarily timeout users using Discord's native timeout feature.
 
-    ⚙️ General Commands: Utility and interactive features for members.
+### 📰 Security News
+- Automated RSS feed fetching from over 30 cybersecurity sources (The Hacker News, BleepingComputer, Krebs on Security, etc.).
+- Configurable channel via `secnews setchannel`.
+- Manual trigger via `secnews test` for immediate checks.
 
-    👑 Owner Management: Commands restricted to administrators/owners for total control.
+### ⚙️ General
+- **Help**: Dynamically generated help menu listing all available commands.
+- **Server Info**: Detailed statistics about the current server.
+- **Ping**: Check the bot's latency.
+- **Invite**: Get the bot's OAuth2 invite link.
 
-    🤖 Modular Architecture: Built using Discord.py cogs for clean structure and maintenance.
+### 👑 Owner
+- **Cog Management**: Load, unload, and reload extensions on the fly.
+- **Sync / Unsync**: Manage Discord slash commands synchronization.
+- **Say / Embed**: Make the bot send custom messages.
+- **Shutdown**: Safely shut down the bot.
+- **Bot Info**: Display real-time CPU usage, RAM consumption, uptime, and system information.
 
-    📰 Cybersecurity News: Automatically fetch and send the latest press articles about cybersecurity right into your channels.
-
-🛠️ Installation & Setup
-
-    Clone the repository:
-    git clone https://github.com/kame1312/DarkSide-Project.git
-    cd DarkSide-Project
-
-    Install dependencies:
-    pip install -r requirements.txt
-
-    Configure the bot:
-
-        Create a .env file at the root.
-
-        Add your Discord token:
-        DISCORD_TOKEN=your_token_here
-
-    Run the bot:
-    python bot.py
-    
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE.md](LICENSE.md) file for details
