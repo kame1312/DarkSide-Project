@@ -133,6 +133,8 @@ class DiscordBot(commands.Bot):
             )
 
     async def on_command_error(self, context: Context, error) -> None:
+        if isinstance(error, commands.CommandNotFound):
+            return
         if isinstance(error, commands.CommandOnCooldown):
             minutes, seconds = divmod(error.retry_after, 60)
             hours, minutes = divmod(minutes, 60)

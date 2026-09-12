@@ -17,11 +17,6 @@ CREATE TABLE IF NOT EXISTS `secnews_last_seen` (
   `entry_id` varchar(500) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS `ai_channels` (
-  `server_id` varchar(20) NOT NULL PRIMARY KEY,
-  `channel_id` varchar(20) NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS `tickets` (
   `id` INTEGER PRIMARY KEY AUTOINCREMENT,
   `guild_id` varchar(20) NOT NULL,

@@ -80,23 +80,6 @@ class DatabaseManager:
             result = await cursor.fetchall()
             return {row[0]: row[1] for row in result}
 
-    async def set_ai_channel(self, server_id: int, channel_id: int) -> None:
-        await self.connection.execute(
-            "INSERT INTO ai_channels(server_id, channel_id) VALUES (?, ?) "
-            "ON CONFLICT(server_id) DO UPDATE SET channel_id=excluded.channel_id",
-            (server_id, channel_id),
-        )
-        await self.connection.commit()
-
-    async def get_ai_channel(self, server_id: int) -> int | None:
-        rows = await self.connection.execute(
-            "SELECT channel_id FROM ai_channels WHERE server_id = ?",
-            (server_id,),
-        )
-        async with rows as cursor:
-            result = await cursor.fetchone()
-            return int(result[0]) if result else None
-
     async def create_ticket(
         self, guild_id: int, channel_id: int, user_id: int, reason: str
     ) -> int:

@@ -22,9 +22,11 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 
 ### 🤖 AI Assistant
 - **Groq Integration**: Fast and free AI responses powered by the Groq API.
-- **Channel-Restricted**: The `/ask` command only works in a channel chosen by an admin.
+- **Mention Trigger**: Just ping the bot with your question to get an answer.
+- **Reply Trigger**: You can also reply to any of the bot's messages to continue the conversation.
+- **Context-Aware**: The bot reads the last 10 messages of the channel to give relevant answers.
 - **Owner-Only Setup**: The API key is configured through a hidden, owner-only slash command.
-- **Persistent Configuration**: The API key and channel are saved to the database and `.env` file.
+- **Persistent Configuration**: The API key is saved to the database and `.env` file.
 - **Smart Responses**: Long answers are automatically split across multiple messages to respect Discord's character limit.
 
 ### 📰 Security News
@@ -45,6 +47,80 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 - **Shutdown**: Safely shut down the bot.
 - **Bot Info**: Display real-time CPU usage, RAM consumption, uptime, and system information.
 
-## License
+## Commands
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE.md](LICENSE.md) file for details
+### 🛡️ Moderation
+| Command | Description | Permissions |
+|---|---|---|
+| `/kick` | Kick a user out of the server. | Kick Members |
+| `/ban` | Ban a user from the server. | Ban Members |
+| `/hackban` | Ban a user by ID without them being in the server. | Ban Members |
+| `/nick` | Change a user's nickname. | Manage Nicknames |
+| `/mute` | Temporarily timeout a user. | Moderate Members |
+| `/unmute` | Remove a timeout from a user. | Moderate Members |
+| `/purge` | Delete a number of messages. | Manage Messages |
+| `/archive` | Save the last messages of a channel to a file. | Manage Messages |
+| `/warning add` | Add a warning to a user. | Manage Messages |
+| `/warning remove` | Remove a warning from a user. | Manage Messages |
+| `/warning list` | List all warnings of a user. | Manage Messages |
+
+### 🎟️ Ticket System
+| Command | Description | Permissions |
+|---|---|---|
+| `/ticket_config` | Show the current ticket configuration. | Administrator |
+| `/ticket_config category` | Set the category where tickets are created. | Administrator |
+| `/ticket_config logs` | Set the channel where ticket logs are sent. | Administrator |
+| `/ticket_config support` | Set the role that can see and manage tickets. | Administrator |
+| `/ticket_config reset` | Reset the ticket configuration. | Administrator |
+| `/ticket_panel` | Post the ticket panel in the current channel. | Administrator |
+| `/ticket_close` | Close the current ticket. | Manage Channels |
+| `/ticket_add` | Add a member to the current ticket. | Manage Channels |
+| `/ticket_remove` | Remove a member from the current ticket. | Manage Channels |
+
+### 🤖 AI Assistant
+| Command | Description | Permissions |
+|---|---|---|
+| `/setup_groq` | Configure the Groq API key. | Bot Owner |
+
+To use the AI, simply **ping the bot** with your question, or **reply to one of its messages**. The bot reads the last 10 messages of the channel to keep the conversation coherent.
+
+### 📰 Security News
+| Command | Description | Permissions |
+|---|---|---|
+| `secnews setchannel` | Set the channel where security news will be posted. | Administrator |
+| `secnews test` | Force an immediate check of all feeds. | Administrator |
+
+### ⚙️ General
+| Command | Description |
+|---|---|
+| `/help` | List all commands the bot has loaded. |
+| `/serverinfo` | Get information about the current server. |
+| `/ping` | Check the bot's latency. |
+| `/invite` | Get the bot's invite link. |
+
+### 👑 Owner
+| Command | Description |
+|---|---|
+| `sync <scope>` | Synchronize slash commands globally or per guild. |
+| `unsync <scope>` | Unsynchronize slash commands. |
+| `load <cog>` | Load a cog. |
+| `unload <cog>` | Unload a cog. |
+| `reload <cog>` | Reload a cog. |
+| `say <message>` | Make the bot say something. |
+| `embed <message>` | Make the bot send an embed. |
+| `botinfo` | Display CPU, RAM, uptime, and system info. |
+| `shutdown` | Shut down the bot. |
+
+## Setup
+
+### Prerequisites
+- Python 3.10 or higher
+- A Discord bot token ([Discord Developer Portal](https://discord.com/developers/applications))
+- A Groq API key ([Groq Console](https://console.groq.com/)) for the AI features
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/darkside-protect.git
+   cd darkside-protect
