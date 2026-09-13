@@ -7,7 +7,7 @@ from openai import OpenAI
 
 from helpers.colors import COLOR_ACCENT, COLOR_ERROR
 
-CONTEXT_LIMIT = 10
+CONTEXT_LIMIT = 30
 MODEL_NAME = "openai/gpt-oss-120b"
 SYSTEM_PROMPT = "Fais des réponses courtes et concises de 10 lignes grand maximum, sois utile et amical"
 

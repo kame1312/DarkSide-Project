@@ -24,7 +24,7 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 - **Groq Integration**: Fast and free AI responses powered by the Groq API.
 - **Mention Trigger**: Just ping the bot with your question to get an answer.
 - **Reply Trigger**: You can also reply to any of the bot's messages to continue the conversation.
-- **Context-Aware**: The bot reads the last 10 messages of the channel to give relevant answers.
+- **Context-Aware**: The bot reads the last 30 messages of the channel to give relevant answers.
 - **Owner-Only Setup**: The API key is configured through a hidden, owner-only slash command.
 - **Persistent Configuration**: The API key is saved to the database and `.env` file.
 - **Smart Responses**: Long answers are automatically split across multiple messages to respect Discord's character limit.
@@ -82,7 +82,7 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 |---|---|---|
 | `/setup_groq` | Configure the Groq API key. | Bot Owner |
 
-To use the AI, simply **ping the bot** with your question, or **reply to one of its messages**. The bot reads the last 10 messages of the channel to keep the conversation coherent.
+To use the AI, simply **ping the bot** with your question, or **reply to one of its messages**. The bot reads the last 30 messages of the channel to keep the conversation coherent.
 
 ### 📰 Security News
 | Command | Description | Permissions |
