@@ -178,3 +178,31 @@ class DatabaseManager:
             (guild_id,),
         )
         await self.connection.commit()
+
+    async def set_welcome_channel(self, guild_id: int, channel_id: int | None) -> None:
+        await self.connection.execute(
+            "INSERT INTO welcome_config(guild_id, channel_id) VALUES (?, ?) "
+            "ON CONFLICT(guild_id) DO UPDATE SET channel_id=excluded.channel_id",
+            (guild_id, channel_id),
+        )
+        await self.connection.commit()
+
+    async def set_welcome_message(self, guild_id: int, message: str) -> None:
+        await self.connection.execute(
+            "INSERT INTO welcome_config(guild_id, message) VALUES (?, ?) "
+            "ON CONFLICT(guild_id) DO UPDATE SET message=excluded.message",
+            (guild_id, message),
+        )
+        await self.connection.commit()
+
+    async def get_welcome_config(self, guild_id: int) -> tuple[int | None, str | None] | None:
+        rows = await self.connection.execute(
+            "SELECT channel_id, message FROM welcome_config WHERE guild_id = ?",
+            (guild_id,),
+        )
+        async with rows as cursor:
+            row = await cursor.fetchone()
+            if row is None:
+                return None
+            channel_id = int(row[0]) if row[0] else None
+            return (channel_id, row[1])

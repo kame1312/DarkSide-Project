@@ -33,3 +33,9 @@ CREATE TABLE IF NOT EXISTS `ticket_config` (
   `log_channel_id` varchar(20),
   `support_role_id` varchar(20)
 );
+
+CREATE TABLE IF NOT EXISTS `welcome_config` (
+  `guild_id` varchar(20) NOT NULL PRIMARY KEY,
+  `channel_id` varchar(20),
+  `message` varchar(2000)
+);

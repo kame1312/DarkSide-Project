@@ -13,6 +13,40 @@ class Moderation(commands.Cog, name="moderation"):
     def __init__(self, bot) -> None:
         self.bot = bot
 
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member) -> None:
+        config = await self.bot.database.get_welcome_config(member.guild.id)
+        if not config:
+            return
+
+        channel_id, message = config
+        if not channel_id:
+            return
+
+        channel = member.guild.get_channel(channel_id)
+        if channel is None:
+            return
+
+        try:
+            text = (message or "Welcome {user} to **{guild}**!").format(
+                user=member.mention,
+                user_name=member.name,
+                user_display=member.display_name,
+                guild=member.guild.name,
+                member_count=member.guild.member_count,
+            )
+        except (KeyError, IndexError):
+            text = f"Welcome {member.mention} to **{member.guild.name}**!"
+
+        embed = discord.Embed(description=text, color=COLOR_DEFAULT)
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.set_footer(text=f"Member #{member.guild.member_count}")
+
+        try:
+            await channel.send(content=member.mention, embed=embed)
+        except discord.Forbidden:
+            pass
+
     @commands.hybrid_command(name="kick", description="Kick a user out of the server.")
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_permissions(kick_members=True)
@@ -201,6 +235,92 @@ class Moderation(commands.Cog, name="moderation"):
         except Exception:
             embed = discord.Embed(description="An error occurred while trying to unmute the user.", color=COLOR_ERROR)
             await context.send(embed=embed)
+
+    @commands.hybrid_group(name="welcome", description="Configure the welcome message for the server.")
+    @commands.has_permissions(manage_guild=True)
+    async def welcome(self, context: Context) -> None:
+        if context.invoked_subcommand is None:
+            embed = discord.Embed(
+                description=(
+                    "Please specify a subcommand.\n\n**Subcommands:**\n"
+                    "`channel` - Set the welcome channel.\n"
+                    "`message` - Set the welcome message.\n"
+                    "`test` - Send a preview of the welcome message.\n"
+                    "`disable` - Disable the welcome message.\n\n"
+                    "**Available placeholders:**\n"
+                    "`{user}` - Mentions (pings) the new member\n"
+                    "`{user_name}` - The member's username\n"
+                    "`{user_display}` - The member's server display name\n"
+                    "`{guild}` - The server name\n"
+                    "`{member_count}` - The number of members in the server"
+                ),
+                color=COLOR_DEFAULT,
+            )
+            await context.send(embed=embed)
+
+    @welcome.command(name="channel", description="Set the channel where welcome messages will be sent.")
+    @commands.has_permissions(manage_guild=True)
+    @commands.bot_has_permissions(send_messages=True)
+    @app_commands.describe(channel="The welcome channel.")
+    async def welcome_channel(self, context: Context, channel: discord.TextChannel) -> None:
+        await self.bot.database.set_welcome_channel(context.guild.id, channel.id)
+        embed = discord.Embed(description=f"Welcome channel has been set to {channel.mention}.", color=COLOR_DEFAULT)
+        await context.send(embed=embed)
+
+    @welcome.command(name="message", description="Set the welcome message.")
+    @commands.has_permissions(manage_guild=True)
+    @app_commands.describe(message="The welcome message. Use {user} to ping the new member.")
+    async def welcome_message(self, context: Context, *, message: str) -> None:
+        await self.bot.database.set_welcome_message(context.guild.id, message)
+        embed = discord.Embed(description="The welcome message has been updated!", color=COLOR_DEFAULT)
+        preview = (
+            message.replace("{user}", context.author.mention)
+            .replace("{user_name}", context.author.name)
+            .replace("{user_display}", context.author.display_name)
+            .replace("{guild}", context.guild.name)
+            .replace("{member_count}", str(context.guild.member_count))
+        )
+        embed.add_field(name="Preview:", value=preview[:1024], inline=False)
+        await context.send(embed=embed)
+
+    @welcome.command(name="test", description="Send a preview of the welcome message in the configured channel.")
+    @commands.has_permissions(manage_guild=True)
+    async def welcome_test(self, context: Context) -> None:
+        config = await self.bot.database.get_welcome_config(context.guild.id)
+        if not config or not config[0]:
+            embed = discord.Embed(description="No welcome channel is set. Use `/welcome channel` first.", color=COLOR_ERROR)
+            await context.send(embed=embed)
+            return
+
+        channel_id, message = config
+        channel = context.guild.get_channel(channel_id)
+        if channel is None:
+            embed = discord.Embed(description="The configured channel no longer exists. Please set it again with `/welcome channel`.", color=COLOR_ERROR)
+            await context.send(embed=embed)
+            return
+
+        text = (message or "Welcome {user} to **{guild}**!").format(
+            user=context.author.mention,
+            user_name=context.author.name,
+            user_display=context.author.display_name,
+            guild=context.guild.name,
+            member_count=context.guild.member_count,
+        )
+
+        preview_embed = discord.Embed(description=text, color=COLOR_DEFAULT)
+        preview_embed.set_thumbnail(url=context.author.display_avatar.url)
+        preview_embed.set_footer(text=f"Member #{context.guild.member_count}")
+        await channel.send(content=context.author.mention, embed=preview_embed)
+
+        confirm = discord.Embed(description=f"Preview sent to {channel.mention}.", color=COLOR_DEFAULT)
+        await context.send(embed=confirm, ephemeral=True)
+
+    @welcome.command(name="disable", description="Disable the welcome message.")
+    @commands.has_permissions(manage_guild=True)
+    async def welcome_disable(self, context: Context) -> None:
+        await self.bot.database.set_welcome_channel(context.guild.id, None)
+        embed = discord.Embed(description="The welcome message has been disabled.", color=COLOR_DEFAULT)
+        await context.send(embed=embed)
 
 
 async def setup(bot) -> None:
