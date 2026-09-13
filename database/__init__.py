@@ -64,21 +64,20 @@ class DatabaseManager:
             result = await cursor.fetchall()
             return {int(row[0]): int(row[1]) for row in result}
 
-    async def set_secnews_last_seen(self, feed_url: str, entry_id: str) -> None:
+    async def set_secnews_published(self, entry_id: str) -> None:
         await self.connection.execute(
-            "INSERT INTO secnews_last_seen(feed_url, entry_id) VALUES (?, ?) "
-            "ON CONFLICT(feed_url) DO UPDATE SET entry_id=excluded.entry_id",
-            (feed_url, entry_id),
+            "INSERT OR IGNORE INTO secnews_published(entry_id) VALUES (?)",
+            (entry_id,),
         )
         await self.connection.commit()
 
-    async def get_secnews_last_seen(self) -> dict:
+    async def get_secnews_published(self) -> set[str]:
         rows = await self.connection.execute(
-            "SELECT feed_url, entry_id FROM secnews_last_seen"
+            "SELECT entry_id FROM secnews_published"
         )
         async with rows as cursor:
             result = await cursor.fetchall()
-            return {row[0]: row[1] for row in result}
+            return {row[0] for row in result}
 
     async def create_ticket(
         self, guild_id: int, channel_id: int, user_id: int, reason: str

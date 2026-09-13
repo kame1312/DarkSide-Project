@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS `secnews_channels` (
   `channel_id` varchar(20) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS `secnews_last_seen` (
-  `feed_url` varchar(255) NOT NULL PRIMARY KEY,
-  `entry_id` varchar(500) NOT NULL
+CREATE TABLE IF NOT EXISTS `secnews_published` (
+  `entry_id` varchar(500) NOT NULL PRIMARY KEY,
+  `published_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS `tickets` (
