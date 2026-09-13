@@ -29,8 +29,28 @@ RSS_FEEDS = {
     "Developpez.com": "https://www.developpez.com/index/rss",
     "Blog du Modérateur": "https://www.blogdumoderateur.com/feed/",
     "Global Security Mag": "https://www.globalsecuritymag.fr/feed",
+    "ANSSI": "https://www.ssi.gouv.fr/feed/",
+    "Next (Next INpact)": "https://next.ink/feed/",
+    "IT-Connect": "https://www.it-connect.fr/feed/",
+    "Zataz": "https://www.zataz.com/feed/",
+    "LeMagIT": "https://www.lemagit.fr/rss/actualites.xml",
+    "The Hacker News": "https://thehackernews.com/feeds/posts/default",
+    "BleepingComputer": "https://www.bleepingcomputer.com/feed/",
+    "Krebs on Security": "https://krebsonsecurity.com/feed/",
+    "Dark Reading": "https://www.darkreading.com/rss.xml",
+    "SecurityWeek": "https://www.securityweek.com/feed/",
+    "SANS ISC": "https://isc.sans.edu/rssfeed.xml",
+    "Ars Technica (Security)": "https://feeds.arstechnica.com/arstechnica/security",
+    "The Register (Security)": "https://www.theregister.com/security/headlines.atom",
+    "CISA Advisories": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+    "KitPloit": "https://www.kitploit.com/feeds/posts/default",
+    "The DFIR Report": "https://thedfirreport.com/feed/",
+    "Malwarebytes Labs": "https://www.malwarebytes.com/blog/feed/index.xml",
+    "Cisco Talos": "https://blog.talosintelligence.com/rss/",
+    "PortSwigger Research": "https://portswigger.net/research/rss",
+    "Hackread": "https://hackread.com/feed/",
+    "GBHackers": "https://gbhackers.com/feed/",
 }
-
 
 class SecurityNews(commands.Cog, name="security_news"):
     def __init__(self, bot: commands.Bot) -> None:
@@ -84,7 +104,7 @@ class SecurityNews(commands.Cog, name="security_news"):
         )
         await ctx.send(embed=embed)
 
-    @tasks.loop(minutes=10)
+    @tasks.loop(minutes=20)
     async def fetch_security_news(self) -> None:
         if not self._target_channels:
             return
@@ -137,63 +157,16 @@ class SecurityNews(commands.Cog, name="security_news"):
                     )
                     embed.set_footer(text=f"Source : {source_name} | DarkSide SecIntel")
 
-                if oldest_unposted is None:
-                    continue
-
-                entry_id = oldest_unposted.get("id") or oldest_unposted.get("link")
-                if not entry_id:
-                    continue
-
-                pub_date = (
-                    oldest_unposted.get("published_parsed")
-                    or oldest_unposted.get("updated_parsed")
-                )
-                pub_timestamp = calendar.timegm(pub_date) if pub_date else time.time()
-
-                if oldest_article is None or pub_timestamp < oldest_article["timestamp"]:
-                    oldest_article = {
-                        "source_name": source_name,
-                        "feed_url": feed_url,
-                        "entry": oldest_unposted,
-                        "entry_id": entry_id,
-                        "timestamp": pub_timestamp,
-                    }
+                    for guild_id, channel_id in self._target_channels.items():
+                        channel = self.bot.get_channel(channel_id)
+                        if channel:
+                            await channel.send(embed=embed)
 
             except Exception as e:
                 log.error(f"Erreur lors de la récupération du flux '{source_name}' : {e}")
 
         if catchup:
             self._boot_done = True
-
-        if oldest_article is None:
-            return
-
-        entry = oldest_article["entry"]
-        summary = getattr(entry, "summary", "")
-        link = getattr(entry, "link", "")
-        title = getattr(entry, "title", "Untitled")
-
-        embed = discord.Embed(
-            title=title,
-            url=link,
-            description=f"{summary[:350]}...\n\n[Read full article]({link})",
-            color=COLOR_ACCENT,
-        )
-        embed.set_footer(text=f"Source: {oldest_article['source_name']} | DarkSide SecIntel")
-
-        for guild_id, channel_id in self._target_channels.items():
-            channel = self.bot.get_channel(channel_id)
-            if not channel:
-                continue
-            try:
-                await channel.send(embed=embed)
-            except Exception as e:
-                log.error(f"Failed to send news to channel {channel_id}: {e}")
-
-        self._last_seen[oldest_article["feed_url"]] = oldest_article["entry_id"]
-        await self.bot.database.set_secnews_last_seen(
-            oldest_article["feed_url"], oldest_article["entry_id"]
-        )
 
     @fetch_security_news.before_loop
     async def before_fetch_security_news(self) -> None:
