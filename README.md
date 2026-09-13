@@ -11,12 +11,13 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 - **Purge**: Bulk delete messages from a channel.
 - **Archive**: Save the last messages of a channel into a text file.
 - **Mute / Unmute**: Temporarily timeout users using Discord's native timeout feature.
+- **Welcome System**: Configurable welcome messages with placeholders (`{user}`, `{user_name}`, `{user_display}`, `{guild}`, `{member_count}`), live preview, and toggle.
 
 ### 🎟️ Ticket System
 - **Fully Configurable**: Set the category, log channel, and support role directly from Discord (no `.env` needed).
 - **Interactive Panel**: Users open tickets via a persistent button and a modal to describe their request.
 - **Private Channels**: Automatic creation of private channels where only the user, staff, and bot can interact.
-- **Control Buttons**: Close the ticket with a single click.
+- **Control Buttons**: Close the ticket with a single click, or generate an HTML transcript on demand.
 - **Transcripts**: Generate and download HTML transcripts of the conversation.
 - **Logs**: Automatic logging of ticket openings and closings in a dedicated channel.
 
@@ -26,7 +27,7 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 - **Reply Trigger**: You can also reply to any of the bot's messages to continue the conversation.
 - **Context-Aware**: The bot reads the last 30 messages of the channel to give relevant answers.
 - **Owner-Only Setup**: The API key is configured through a hidden, owner-only slash command.
-- **Persistent Configuration**: The API key is saved to the database and `.env` file.
+- **Persistent Configuration**: The API key is saved to the `.env` file.
 - **Smart Responses**: Long answers are automatically split across multiple messages to respect Discord's character limit.
 
 ### 📰 Security News
@@ -63,6 +64,10 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 | `/warning add` | Add a warning to a user. | Manage Messages |
 | `/warning remove` | Remove a warning from a user. | Manage Messages |
 | `/warning list` | List all warnings of a user. | Manage Messages |
+| `/welcome channel` | Set the welcome channel. | Manage Server |
+| `/welcome message` | Set the welcome message (supports placeholders). | Manage Server |
+| `/welcome test` | Send a preview of the welcome message. | Manage Server |
+| `/welcome disable` | Disable the welcome message. | Manage Server |
 
 ### 🎟️ Ticket System
 | Command | Description | Permissions |
