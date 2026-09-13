@@ -122,10 +122,13 @@ class Owner(commands.Cog, name="owner"):
         uptime_seconds = time.time() - self.bot.start_time
         uptime = str(datetime.timedelta(seconds=int(uptime_seconds)))
 
+        guild_count = len(self.bot.guilds)
+
         embed = discord.Embed(title="Bot Information", color=COLOR_ACCENT)
         embed.add_field(name="CPU Usage", value=f"{cpu_usage:.2f}%", inline=True)
         embed.add_field(name="RAM Usage", value=f"{ram_usage:.2f} MB", inline=True)
         embed.add_field(name="Uptime", value=uptime, inline=True)
+        embed.add_field(name="Servers", value=f"{guild_count}", inline=True)
         embed.add_field(name="Discord.py Version", value=discord.__version__, inline=True)
         embed.add_field(name="Python Version", value=platform.python_version(), inline=True)
         embed.add_field(name="System", value=f"{platform.system()} {platform.release()}", inline=True)
