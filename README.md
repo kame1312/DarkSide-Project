@@ -31,7 +31,7 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 - **Smart Responses**: Long answers are automatically split across multiple messages to respect Discord's character limit.
 
 ### 📰 Security News
-- Automated RSS feed fetching from over 30 cybersecurity sources (The Hacker News, BleepingComputer, Krebs on Security, etc.).
+- Automated RSS feed fetching from over 27 cybersecurity sources (The Hacker News, BleepingComputer, Krebs on Security, etc.).
 - Configurable channel via `secnews setchannel`.
 - Manual trigger via `secnews test` for immediate checks.
 
