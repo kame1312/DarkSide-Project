@@ -39,3 +39,15 @@ CREATE TABLE IF NOT EXISTS `welcome_config` (
   `channel_id` varchar(20),
   `message` varchar(2000)
 );
+
+CREATE TABLE IF NOT EXISTS guild_settings (
+    guild_id INTEGER PRIMARY KEY,
+    lang TEXT DEFAULT 'en',
+    suggestion_channel_id INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS ticket_panel_config (
+    guild_id INTEGER PRIMARY KEY,
+    title TEXT,
+    description TEXT
+);

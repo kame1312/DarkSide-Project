@@ -18,6 +18,7 @@ SYSTEM_PROMPT = (
     "dans le même salon, tiens compte de qui dit quoi. "
     "Fais des réponses courtes et concises de 10 lignes grand maximum, "
     "sois utile et amical"
+    "Utilise la langue que les messages que tu lis utilise"
 )
 
 # Ordre de priorité : du meilleur au plus simple

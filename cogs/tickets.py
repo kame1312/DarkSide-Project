@@ -214,7 +214,7 @@ class Tickets(commands.Cog, name="tickets"):
         bot.add_view(TicketPanelView())
         bot.add_view(TicketControlView())
 
-    @commands.hybrid_group(
+    @commands.group(
         name="ticket_config",
         description="Configure the ticket system for this server.",
         invoke_without_command=True,
@@ -280,7 +280,7 @@ class Tickets(commands.Cog, name="tickets"):
         )
         await context.send(embed=embed)
 
-    @commands.hybrid_command(
+    @commands.command(
         name="ticket_panel",
         description="Post the ticket panel in the current channel.",
     )
@@ -289,7 +289,7 @@ class Tickets(commands.Cog, name="tickets"):
         config = await self.bot.database.get_ticket_config(context.guild.id)
         if not config or not config["category_id"]:
             embed = discord.Embed(
-                description="The ticket system is not configured. Use `/ticket_config category` first.",
+                description="The ticket system is not configured. Use `!ticket_config category` first.",
                 color=COLOR_ERROR,
             )
             await context.send(embed=embed)

@@ -132,7 +132,7 @@ class GitWatch(commands.Cog, name="gitwatch"):
     async def before_poll(self) -> None:
         await self.bot.wait_until_ready()
 
-    @commands.hybrid_group(name="gitwatch", description="Configure the GitHub push notifications.")
+    @commands.group(name="gitwatch", description="Configure the GitHub push notifications.")
     @commands.is_owner()
     async def gitwatch(self, context: Context) -> None:
         embed = discord.Embed(description="Use `gitwatch setchannel`, `gitwatch disable` or `gitwatch test`.", color=COLOR_DEFAULT)

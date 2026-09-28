@@ -59,7 +59,7 @@ class SecurityNews(commands.Cog, name="security_news"):
     def cog_unload(self) -> None:
         self.fetch_security_news.cancel()
 
-    @commands.hybrid_group(name="secnews", invoke_without_command=True, description="Gère les flux d'actualités cybersécurité.")
+    @commands.group(name="secnews", invoke_without_command=True, description="Gère les flux d'actualités cybersécurité.")
     @commands.has_permissions(administrator=True)
     async def secnews(self, ctx: commands.Context) -> None:
         prefix = ctx.prefix

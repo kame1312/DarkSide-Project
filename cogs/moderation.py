@@ -236,7 +236,7 @@ class Moderation(commands.Cog, name="moderation"):
             embed = discord.Embed(description="An error occurred while trying to unmute the user.", color=COLOR_ERROR)
             await context.send(embed=embed)
 
-    @commands.hybrid_group(name="welcome", description="Configure the welcome message for the server.")
+    @commands.group(name="welcome", description="Configure the welcome message for the server.")
     @commands.has_permissions(manage_guild=True)
     async def welcome(self, context: Context) -> None:
         if context.invoked_subcommand is None:
@@ -288,14 +288,14 @@ class Moderation(commands.Cog, name="moderation"):
     async def welcome_test(self, context: Context) -> None:
         config = await self.bot.database.get_welcome_config(context.guild.id)
         if not config or not config[0]:
-            embed = discord.Embed(description="No welcome channel is set. Use `/welcome channel` first.", color=COLOR_ERROR)
+            embed = discord.Embed(description="No welcome channel is set. Use `welcome channel` first.", color=COLOR_ERROR)
             await context.send(embed=embed)
             return
 
         channel_id, message = config
         channel = context.guild.get_channel(channel_id)
         if channel is None:
-            embed = discord.Embed(description="The configured channel no longer exists. Please set it again with `/welcome channel`.", color=COLOR_ERROR)
+            embed = discord.Embed(description="The configured channel no longer exists. Please set it again with `welcome channel`.", color=COLOR_ERROR)
             await context.send(embed=embed)
             return
 

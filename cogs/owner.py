@@ -191,6 +191,16 @@ class Owner(commands.Cog, name="owner"):
         )
         await context.send(embed=result)
 
+    @commands.hybrid_command(name="setup_suggestions", description="Set the global channel where user suggestions will be sent.")
+    @commands.is_owner()
+    async def setup_suggestions(self, context: Context, channel: discord.TextChannel) -> None:
+        await self.bot.database.set_owner_suggestion_channel(channel.id)
+        embed = discord.Embed(
+            description=f"Suggestion channel set to {channel.mention}.",
+            color=COLOR_ACCENT
+        )
+        await context.send(embed=embed)
+
 
 async def setup(bot) -> None:
     await bot.add_cog(Owner(bot))

@@ -207,4 +207,52 @@ class DatabaseManager:
             channel_id = int(row[0]) if row[0] else None
             return (channel_id, row[1])
 
+    async def set_guild_lang(self, guild_id: int, lang: str) -> None:
+        async with self.connection.execute(
+            "INSERT INTO guild_settings (guild_id, lang) VALUES (?, ?) "
+            "ON CONFLICT(guild_id) DO UPDATE SET lang = ?",
+            (guild_id, lang, lang)
+        ) as cursor:
+            await self.connection.commit()
+
+    async def get_guild_lang(self, guild_id: int) -> str:
+        async with self.connection.execute(
+            "SELECT lang FROM guild_settings WHERE guild_id = ?", (guild_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else "en"
+
+    async def set_owner_suggestion_channel(self, channel_id: int) -> None:
+        async with self.connection.execute(
+            "INSERT INTO guild_settings (guild_id, suggestion_channel_id) VALUES (0, ?) "
+            "ON CONFLICT(guild_id) DO UPDATE SET suggestion_channel_id = ?",
+            (channel_id, channel_id)
+        ) as cursor:
+            await self.connection.commit()
+
+    async def get_owner_suggestion_channel(self) -> int | None:
+        async with self.connection.execute(
+            "SELECT suggestion_channel_id FROM guild_settings WHERE guild_id = 0"
+        ) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else None
+
+    async def set_ticket_panel_config(self, guild_id: int, title: str, description: str) -> None:
+        await self.connection.execute(
+            "INSERT INTO ticket_panel_config(guild_id, title, description) VALUES (?, ?, ?) "
+            "ON CONFLICT(guild_id) DO UPDATE SET title=excluded.title, description=excluded.description",
+            (guild_id, title, description),
+        )
+        await self.connection.commit()
+
+    async def get_ticket_panel_config(self, guild_id: int) -> dict | None:
+        rows = await self.connection.execute(
+            "SELECT title, description FROM ticket_panel_config WHERE guild_id = ?",
+            (guild_id,),
+        )
+        async with rows as cursor:
+            row = await cursor.fetchone()
+            if row:
+                return {"title": row[0], "description": row[1]}
+        return None
 # Made by kam
