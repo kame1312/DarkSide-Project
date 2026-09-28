@@ -1,3 +1,5 @@
+import os
+
 import discord
 from discord.ext import commands
 from discord.ext.commands import Context
@@ -143,11 +145,12 @@ class TicketPanelModal(discord.ui.Modal):
 
 
 class TicketsConfigView(discord.ui.View):
-    def __init__(self, bot, author_id, parent_view):
+    def __init__(self, bot, author_id, parent_view, banner_url=None):
         super().__init__(timeout=300)
         self.bot = bot
         self.author_id = author_id
         self.parent_view = parent_view
+        self.banner_url = banner_url
         self.pending_category = None
         self.pending_log = None
         self.pending_support = None
@@ -173,6 +176,8 @@ class TicketsConfigView(discord.ui.View):
             description="Select the channels and role below, then click **Save** to apply.",
             color=COLOR_ACCENT,
         )
+        if self.banner_url:
+            embed.set_image(url=self.banner_url)
         embed.add_field(
             name="Category",
             value=f"<#{self.pending_category}>" if self.pending_category else "❌ Not set",
@@ -291,11 +296,12 @@ class TicketsConfigView(discord.ui.View):
 
 
 class SecNewsConfigView(discord.ui.View):
-    def __init__(self, bot, author_id, parent_view):
+    def __init__(self, bot, author_id, parent_view, banner_url=None):
         super().__init__(timeout=300)
         self.bot = bot
         self.author_id = author_id
         self.parent_view = parent_view
+        self.banner_url = banner_url
         self.pending_channel = None
 
     async def load_current(self, guild_id):
@@ -316,6 +322,8 @@ class SecNewsConfigView(discord.ui.View):
             description="Select a channel below, then click **Save** to apply.",
             color=COLOR_ACCENT,
         )
+        if self.banner_url:
+            embed.set_image(url=self.banner_url)
         embed.add_field(
             name="News Channel",
             value=f"<#{self.pending_channel}>" if self.pending_channel else "❌ Not set",
@@ -370,11 +378,12 @@ class SecNewsConfigView(discord.ui.View):
 
 
 class GitWatchConfigView(discord.ui.View):
-    def __init__(self, bot, author_id, parent_view):
+    def __init__(self, bot, author_id, parent_view, banner_url=None):
         super().__init__(timeout=300)
         self.bot = bot
         self.author_id = author_id
         self.parent_view = parent_view
+        self.banner_url = banner_url
         self.pending_channel = None
 
     def load_current(self):
@@ -396,6 +405,8 @@ class GitWatchConfigView(discord.ui.View):
             description="Select a channel below, then click **Save** to apply.",
             color=COLOR_ACCENT,
         )
+        if self.banner_url:
+            embed.set_image(url=self.banner_url)
         embed.add_field(
             name="Notification Channel",
             value=f"<#{self.pending_channel}>" if self.pending_channel else "❌ Not set",
@@ -473,11 +484,12 @@ class GitWatchConfigView(discord.ui.View):
 
 
 class WelcomeConfigView(discord.ui.View):
-    def __init__(self, bot, author_id, parent_view):
+    def __init__(self, bot, author_id, parent_view, banner_url=None):
         super().__init__(timeout=300)
         self.bot = bot
         self.author_id = author_id
         self.parent_view = parent_view
+        self.banner_url = banner_url
         self.pending_channel = None
         self.current_message = None
 
@@ -501,6 +513,8 @@ class WelcomeConfigView(discord.ui.View):
             description="Configure the welcome channel and message, then click **Save Channel** to apply the channel.",
             color=COLOR_ACCENT,
         )
+        if self.banner_url:
+            embed.set_image(url=self.banner_url)
         embed.add_field(
             name="Channel",
             value=f"<#{self.pending_channel}>" if self.pending_channel else "❌ Not set",
@@ -598,10 +612,11 @@ class WelcomeConfigView(discord.ui.View):
 
 
 class DashboardView(discord.ui.View):
-    def __init__(self, bot, author_id):
+    def __init__(self, bot, author_id, banner_url=None):
         super().__init__(timeout=600)
         self.bot = bot
         self.author_id = author_id
+        self.banner_url = banner_url
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
@@ -617,6 +632,8 @@ class DashboardView(discord.ui.View):
             description="Welcome to the configuration dashboard. Click a button below to configure a feature.",
             color=COLOR_ACCENT,
         )
+        if self.banner_url:
+            embed.set_image(url=self.banner_url)
         embed.set_footer(text="DarkSide Project Dashboard")
         return embed
 
@@ -626,7 +643,7 @@ class DashboardView(discord.ui.View):
     async def tickets_btn(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        view = TicketsConfigView(self.bot, self.author_id, self)
+        view = TicketsConfigView(self.bot, self.author_id, self, self.banner_url)
         await view.load_current(interaction.guild.id)
         await interaction.response.edit_message(embed=view.get_embed(), view=view)
 
@@ -636,7 +653,7 @@ class DashboardView(discord.ui.View):
     async def secnews_btn(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        view = SecNewsConfigView(self.bot, self.author_id, self)
+        view = SecNewsConfigView(self.bot, self.author_id, self, self.banner_url)
         await view.load_current(interaction.guild.id)
         await interaction.response.edit_message(embed=view.get_embed(), view=view)
 
@@ -646,7 +663,7 @@ class DashboardView(discord.ui.View):
     async def gitwatch_btn(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        view = GitWatchConfigView(self.bot, self.author_id, self)
+        view = GitWatchConfigView(self.bot, self.author_id, self, self.banner_url)
         view.load_current()
         await interaction.response.edit_message(embed=view.get_embed(), view=view)
 
@@ -656,7 +673,7 @@ class DashboardView(discord.ui.View):
     async def welcome_btn(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        view = WelcomeConfigView(self.bot, self.author_id, self)
+        view = WelcomeConfigView(self.bot, self.author_id, self, self.banner_url)
         await view.load_current(interaction.guild.id)
         await interaction.response.edit_message(embed=view.get_embed(), view=view)
 
@@ -725,7 +742,11 @@ class Dashboard(commands.Cog, name="dashboard"):
     )
     @commands.has_permissions(administrator=True)
     async def dashboard(self, context: Context) -> None:
-        view = DashboardView(self.bot, context.author.id)
+        banner_url = os.getenv("BANNER_URL")
+        if not banner_url and self.bot.user.banner:
+            banner_url = self.bot.user.banner.url
+
+        view = DashboardView(self.bot, context.author.id, banner_url)
         await context.send(embed=view.get_embed(), view=view, ephemeral=True)
 
     @commands.hybrid_command(
