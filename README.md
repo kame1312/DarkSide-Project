@@ -26,8 +26,7 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 - **Mention Trigger**: Just ping the bot with your question to get an answer.
 - **Reply Trigger**: You can also reply to any of the bot's messages to continue the conversation.
 - **Context-Aware**: The bot reads the last 30 messages of the channel to give relevant answers.
-- **Owner-Only Setup**: The API key is configured through a hidden, owner-only slash command.
-- **Persistent Configuration**: The API key is saved to the `.env` file.
+- **Environment Variable Configuration**: The API key is set directly in the `.env` file as `GROQ_API_KEY`.
 - **Smart Responses**: Long answers are automatically split across multiple messages to respect Discord's character limit.
 
 ### 📰 Security News
@@ -47,6 +46,7 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 - **Say / Embed**: Make the bot send custom messages.
 - **Shutdown**: Safely shut down the bot.
 - **Bot Info**: Display real-time CPU usage, RAM consumption, uptime, and system information.
+- **Server List**: List every server the bot is in, with an invite link for each.
 
 ## Commands
 
@@ -83,7 +83,7 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 | `/ticket_remove` | Remove a member from the current ticket. | Manage Channels |
 
 ### 🤖 AI Assistant
-**Set your api key in your .env file**
+**Set your API key in your `.env` file** as `GROQ_API_KEY`.
 
 To use the AI, simply **ping the bot** with your question, or **reply to one of its messages**. The bot reads the last 30 messages of the channel to keep the conversation coherent.
 
@@ -111,6 +111,7 @@ To use the AI, simply **ping the bot** with your question, or **reply to one of 
 | `reload <cog>` | Reload a cog. |
 | `say <message>` | Make the bot say something. |
 | `embed <message>` | Make the bot send an embed. |
+| `servers` | List all servers the bot is in, with an invite link for each. |
 | `botinfo` | Display CPU, RAM, uptime, and system info. |
 | `shutdown` | Shut down the bot. |
 

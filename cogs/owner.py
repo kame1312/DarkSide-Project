@@ -111,6 +111,33 @@ class Owner(commands.Cog, name="owner"):
         embed = discord.Embed(description=message, color=COLOR_DEFAULT)
         await context.send(embed=embed)
 
+    @commands.hybrid_command(name="servers", description="Lists all the servers the bot is in with an invite link.")
+    @commands.is_owner()
+    async def servers(self, context: Context) -> None:
+        if not self.bot.guilds:
+            embed = discord.Embed(description="The bot is not in any server.", color=COLOR_ERROR)
+            await context.send(embed=embed)
+            return
+
+        embed = discord.Embed(title=f"Servers ({len(self.bot.guilds)})", color=COLOR_ACCENT)
+        for guild in sorted(self.bot.guilds, key=lambda g: g.name.lower()):
+            invite_url = "N/A"
+            for channel in guild.text_channels:
+                if channel.permissions_for(guild.me).create_instant_invite:
+                    try:
+                        invite = await channel.create_invite(max_age=0, max_uses=0, unique=False, reason="Owner requested server list")
+                        invite_url = invite.url
+                        break
+                    except discord.HTTPException:
+                        continue
+            owner = guild.owner.mention if guild.owner else "Unknown"
+            embed.add_field(
+                name=f"{guild.name} ({guild.id})",
+                value=f"Owner: {owner}\nMembers: {guild.member_count}\n[Invite]({invite_url})",
+                inline=False,
+            )
+        await context.send(embed=embed)
+
     @commands.hybrid_command(name="botinfo", description="Displays the bot's resource usage and general information.")
     @commands.is_owner()
     async def botinfo(self, context: Context) -> None:
