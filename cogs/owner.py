@@ -161,6 +161,36 @@ class Owner(commands.Cog, name="owner"):
         embed.add_field(name="System", value=f"{platform.system()} {platform.release()}", inline=True)
         await context.send(embed=embed)
 
+    @commands.hybrid_command(name="broadcast", description="Send a message to every server the bot is in.")
+    @app_commands.describe(message="The message to broadcast")
+    @commands.is_owner()
+    async def broadcast(self, context: Context, *, message: str) -> None:
+        await context.defer()
+        embed = discord.Embed(description=message, color=COLOR_ACCENT)
+        sent = 0
+        failed = 0
+        for guild in self.bot.guilds:
+            channel = guild.system_channel
+            if channel is None or not channel.permissions_for(guild.me).send_messages:
+                channel = None
+                for candidate in guild.text_channels:
+                    if candidate.permissions_for(guild.me).send_messages:
+                        channel = candidate
+                        break
+            if channel is None:
+                failed += 1
+                continue
+            try:
+                await channel.send(embed=embed)
+                sent += 1
+            except discord.HTTPException:
+                failed += 1
+        result = discord.Embed(
+            description=f"Broadcast sent to {sent}/{len(self.bot.guilds)} server(s). Failed: {failed}.",
+            color=COLOR_DEFAULT,
+        )
+        await context.send(embed=result)
+
 
 async def setup(bot) -> None:
     await bot.add_cog(Owner(bot))

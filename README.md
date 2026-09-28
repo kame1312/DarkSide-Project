@@ -1,6 +1,6 @@
 # DarkSide Protect
 
-A multifunctional Discord bot built with `discord.py` that provides robust moderation tools, comprehensive server information, owner utilities, an automated cybersecurity news feed system, an integrated AI assistant powered by Groq, and a fully configurable ticket system.
+A multifunctional Discord bot built with `discord.py` that provides robust moderation tools, comprehensive server information, owner utilities, an automated cybersecurity news feed system, an integrated AI assistant powered by Groq, a GitHub push notification watcher, and a fully configurable ticket system.
 
 ## Features
 
@@ -25,7 +25,10 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 - **Groq Integration**: Fast and free AI responses powered by the Groq API.
 - **Mention Trigger**: Just ping the bot with your question to get an answer.
 - **Reply Trigger**: You can also reply to any of the bot's messages to continue the conversation.
-- **Context-Aware**: The bot reads the last 30 messages of the channel to give relevant answers.
+- **Context-Aware**: The bot reads the last 60 messages of the channel to give relevant answers.
+- **Multi-User Awareness**: Each message is tagged with its author's display name, so the AI knows who said what and can address the right person.
+- **Automatic Model Fallback**: If a Groq model becomes unavailable, hits a rate limit, or is deprecated, the bot automatically switches to the next available model (from a priority list) without any intervention.
+- **Dynamic Model Detection**: On startup, the bot queries the Groq API to select the best available model from its fallback list.
 - **Environment Variable Configuration**: The API key is set directly in the `.env` file as `GROQ_API_KEY`.
 - **Smart Responses**: Long answers are automatically split across multiple messages to respect Discord's character limit.
 
@@ -33,6 +36,13 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 - Automated RSS feed fetching from over 27 cybersecurity sources (The Hacker News, BleepingComputer, Krebs on Security, etc.).
 - Configurable channel via `secnews setchannel`.
 - Manual trigger via `secnews test` for immediate checks.
+
+### 🔔 Git Watch
+- **Automatic Push Notifications**: Polls the GitHub Atom feed of the configured repository and posts every new commit to a dedicated channel.
+- **Configurable Channel**: Set the target channel with a single command.
+- **Persistent State**: Remembers the last seen commit across restarts, so no commit is ever missed or duplicated.
+- **Manual Test**: Force an immediate check of the feed on demand.
+- **No Token Required**: Works out of the box for public repositories without any GitHub token or webhook setup.
 
 ### ⚙️ General
 - **Help**: Dynamically generated help menu listing all available commands.
@@ -44,6 +54,7 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 - **Cog Management**: Load, unload, and reload extensions on the fly.
 - **Sync / Unsync**: Manage Discord slash commands synchronization.
 - **Say / Embed**: Make the bot send custom messages.
+- **Broadcast**: Send a message to every server the bot is in.
 - **Shutdown**: Safely shut down the bot.
 - **Bot Info**: Display real-time CPU usage, RAM consumption, uptime, and system information.
 - **Server List**: List every server the bot is in, with an invite link for each.
@@ -85,13 +96,22 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 ### 🤖 AI Assistant
 **Set your API key in your `.env` file** as `GROQ_API_KEY`.
 
-To use the AI, simply **ping the bot** with your question, or **reply to one of its messages**. The bot reads the last 30 messages of the channel to keep the conversation coherent.
+To use the AI, simply **ping the bot** with your question, or **reply to one of its messages**. The bot reads the last 60 messages of the channel to keep the conversation coherent, and distinguishes between all participants so it can address the right person.
+
+If a Groq model becomes unavailable or rate-limited, the bot automatically falls back to the next available model from a built-in priority list.
 
 ### 📰 Security News
 | Command | Description | Permissions |
 |---|---|---|
 | `secnews setchannel` | Set the channel where security news will be posted. | Administrator |
 | `secnews test` | Force an immediate check of all feeds. | Administrator |
+
+### 🔔 Git Watch
+| Command | Description | Permissions |
+|---|---|---|
+| `gitwatch setchannel <channel>` | Set the channel where git push notifications are posted. | Owner |
+| `gitwatch disable` | Disable git push notifications. | Owner |
+| `gitwatch test` | Force an immediate check of the GitHub feed. | Owner |
 
 ### ⚙️ General
 | Command | Description |
@@ -111,6 +131,7 @@ To use the AI, simply **ping the bot** with your question, or **reply to one of 
 | `reload <cog>` | Reload a cog. |
 | `say <message>` | Make the bot say something. |
 | `embed <message>` | Make the bot send an embed. |
+| `broadcast <message>` | Send a message to every server the bot is in. |
 | `servers` | List all servers the bot is in, with an invite link for each. |
 | `botinfo` | Display CPU, RAM, uptime, and system info. |
 | `shutdown` | Shut down the bot. |
