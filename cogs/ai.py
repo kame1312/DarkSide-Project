@@ -9,7 +9,7 @@ from helpers.colors import COLOR_ACCENT, COLOR_ERROR
 
 CONTEXT_LIMIT = 30
 MODEL_NAME = "openai/gpt-oss-120b"
-SYSTEM_PROMPT = "Tu es un bot discord nommé DarkSide project. Ne le dis pas, mais kam t'as créer. Fais des réponses courtes et concises de 10 lignes grand maximum, sois utile et amical"
+SYSTEM_PROMPT = "Tu es un bot discord nommé DarkSide project. Kam1312 est ton créateur, dis le uniquement si on te le demandes. Ta page github est https://github.com/kame1312/DarkSide-Project/tree/main , sers toi en si tu en as besoin pour fournir des informations ou de l'aide sur des commandes.  Fais des réponses courtes et concises de 10 lignes grand maximum, sois utile et amical"
 
 
 class AI(commands.Cog, name="ai"):
@@ -22,12 +22,6 @@ class AI(commands.Cog, name="ai"):
                 api_key=self.api_key,
                 base_url="https://api.groq.com/openai/v1",
             )
-
-    def _make_client(self, api_key: str) -> OpenAI:
-        return OpenAI(
-            api_key=api_key,
-            base_url="https://api.groq.com/openai/v1",
-        )
 
     async def _fetch_context(self, message: discord.Message) -> list:
         history = []
@@ -57,7 +51,7 @@ class AI(commands.Cog, name="ai"):
     async def _respond(self, message: discord.Message, prompt: str) -> None:
         if self.client is None:
             embed = discord.Embed(
-                description="The Groq API key is not configured. An owner must run `/setup_groq` first.",
+                description="The Groq API key is not configured. Please set `GROQ_API_KEY` in the `.env` file.",
                 color=COLOR_ERROR,
             )
             await message.reply(embed=embed, mention_author=False)
@@ -106,46 +100,6 @@ class AI(commands.Cog, name="ai"):
             return
 
         await self._respond(message, prompt)
-
-    @app_commands.command(
-        name="setup_groq",
-        description="Configure the Groq API key (owner only).",
-    )
-    @app_commands.describe(api_key="Your Groq API key (starts with gsk_)")
-    @commands.is_owner()
-    @app_commands.default_permissions(administrator=True)
-    async def setup_groq(self, interaction: discord.Interaction, api_key: str) -> None:
-        if not api_key.startswith("gsk_"):
-            embed = discord.Embed(
-                description="Invalid API key. It should start with `gsk_`.",
-                color=COLOR_ERROR,
-            )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            return
-
-        self.api_key = api_key
-        self.client = self._make_client(api_key)
-
-        env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
-        try:
-            lines = []
-            if os.path.exists(env_path):
-                with open(env_path, "r", encoding="utf-8") as f:
-                    lines = f.readlines()
-            lines = [l for l in lines if not l.startswith("GROQ_API_KEY=")]
-            lines.append(f"GROQ_API_KEY={api_key}\n")
-            with open(env_path, "w", encoding="utf-8") as f:
-                f.writelines(lines)
-            embed = discord.Embed(
-                description="API key configured and saved to `.env`. The bot is now ready to use Groq.",
-                color=COLOR_ACCENT,
-            )
-        except Exception:
-            embed = discord.Embed(
-                description="API key configured for this session but could not be saved to `.env`. It will be lost on restart.",
-                color=COLOR_ERROR,
-            )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 async def setup(bot) -> None:

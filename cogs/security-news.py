@@ -173,3 +173,5 @@ class SecurityNews(commands.Cog, name="security_news"):
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(SecurityNews(bot))
+
+# Made by kam

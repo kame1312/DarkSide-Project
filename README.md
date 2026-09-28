@@ -83,9 +83,7 @@ A multifunctional Discord bot built with `discord.py` that provides robust moder
 | `/ticket_remove` | Remove a member from the current ticket. | Manage Channels |
 
 ### 🤖 AI Assistant
-| Command | Description | Permissions |
-|---|---|---|
-| `/setup_groq` | Configure the Groq API key. | Bot Owner |
+**Set your api key in yout .env file**
 
 To use the AI, simply **ping the bot** with your question, or **reply to one of its messages**. The bot reads the last 30 messages of the channel to keep the conversation coherent.
 

@@ -356,3 +356,5 @@ class Tickets(commands.Cog, name="tickets"):
 
 async def setup(bot) -> None:
     await bot.add_cog(Tickets(bot))
+
+# Made by kam

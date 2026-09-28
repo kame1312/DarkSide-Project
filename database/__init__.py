@@ -206,3 +206,5 @@ class DatabaseManager:
                 return None
             channel_id = int(row[0]) if row[0] else None
             return (channel_id, row[1])
+
+# Made by kam
