@@ -6,118 +6,99 @@ import discord
 import psutil
 from discord import app_commands
 from discord.ext import commands
-from discord.ext.commands import Context
 
 from helpers.colors import COLOR_ACCENT, COLOR_DEFAULT, COLOR_ERROR
 
 
+def make_embed(desc=None, color=COLOR_DEFAULT, **kw):
+    return discord.Embed(description=desc, color=color, **kw)
+
+
 class Owner(commands.Cog, name="owner"):
-    def __init__(self, bot) -> None:
+    def __init__(self, bot):
         self.bot = bot
+
+    async def _sync(self, context, clear, scope):
+        tree = context.bot.tree
+        word = "un" if clear else ""
+
+        if scope == "global":
+            if clear:
+                tree.clear_commands(guild=None)
+            await tree.sync()
+            return await context.send(embed=make_embed(f"Slash commands have been globally {word}synchronized."))
+
+        if scope == "guild":
+            if clear:
+                tree.clear_commands(guild=context.guild)
+            else:
+                tree.copy_global_to(guild=context.guild)
+            await tree.sync(guild=context.guild)
+            return await context.send(embed=make_embed(f"Slash commands have been {word}synchronized in this guild."))
+
+        await context.send(embed=make_embed("The scope must be `global` or `guild`.", COLOR_ERROR))
 
     @commands.command(name="sync", description="Synchronizes the slash commands.")
     @app_commands.describe(scope="The scope of the sync. Can be `global` or `guild`")
     @commands.is_owner()
-    async def sync(self, context: Context, scope: str) -> None:
-        if scope == "global":
-            await context.bot.tree.sync()
-            embed = discord.Embed(description="Slash commands have been globally synchronized.", color=COLOR_DEFAULT)
-            await context.send(embed=embed)
-            return
-        elif scope == "guild":
-            context.bot.tree.copy_global_to(guild=context.guild)
-            await context.bot.tree.sync(guild=context.guild)
-            embed = discord.Embed(description="Slash commands have been synchronized in this guild.", color=COLOR_DEFAULT)
-            await context.send(embed=embed)
-            return
-        embed = discord.Embed(description="The scope must be `global` or `guild`.", color=COLOR_ERROR)
-        await context.send(embed=embed)
+    async def sync(self, context, scope: str):
+        await self._sync(context, False, scope)
 
     @commands.command(name="unsync", description="Unsynchronizes the slash commands.")
-    @app_commands.describe(scope="The scope of the sync. Can be `global`, `current_guild` or `guild`")
+    @app_commands.describe(scope="The scope of the sync. Can be `global` or `guild`")
     @commands.is_owner()
-    async def unsync(self, context: Context, scope: str) -> None:
-        if scope == "global":
-            context.bot.tree.clear_commands(guild=None)
-            await context.bot.tree.sync()
-            embed = discord.Embed(description="Slash commands have been globally unsynchronized.", color=COLOR_DEFAULT)
-            await context.send(embed=embed)
-            return
-        elif scope == "guild":
-            context.bot.tree.clear_commands(guild=context.guild)
-            await context.bot.tree.sync(guild=context.guild)
-            embed = discord.Embed(description="Slash commands have been unsynchronized in this guild.", color=COLOR_DEFAULT)
-            await context.send(embed=embed)
-            return
-        embed = discord.Embed(description="The scope must be `global` or `guild`.", color=COLOR_ERROR)
-        await context.send(embed=embed)
+    async def unsync(self, context, scope: str):
+        await self._sync(context, True, scope)
+
+    async def _manage_cog(self, context, cog, action):
+        try:
+            await getattr(self.bot, f"{action}_extension")(f"cogs.{cog}")
+        except Exception:
+            return await context.send(embed=make_embed(f"Could not {action} the `{cog}` cog.", COLOR_ERROR))
+        done = {"load": "loaded", "unload": "unloaded", "reload": "reloaded"}[action]
+        await context.send(embed=make_embed(f"Successfully {done} the `{cog}` cog."))
 
     @commands.hybrid_command(name="load", description="Load a cog")
     @app_commands.describe(cog="The name of the cog to load")
     @commands.is_owner()
-    async def load(self, context: Context, cog: str) -> None:
-        try:
-            await self.bot.load_extension(f"cogs.{cog}")
-        except Exception:
-            embed = discord.Embed(description=f"Could not load the `{cog}` cog.", color=COLOR_ERROR)
-            await context.send(embed=embed)
-            return
-        embed = discord.Embed(description=f"Successfully loaded the `{cog}` cog.", color=COLOR_DEFAULT)
-        await context.send(embed=embed)
+    async def load(self, context, cog: str):
+        await self._manage_cog(context, cog, "load")
 
     @commands.hybrid_command(name="unload", description="Unloads a cog.")
     @app_commands.describe(cog="The name of the cog to unload")
     @commands.is_owner()
-    async def unload(self, context: Context, cog: str) -> None:
-        try:
-            await self.bot.unload_extension(f"cogs.{cog}")
-        except Exception:
-            embed = discord.Embed(description=f"Could not unload the `{cog}` cog.", color=COLOR_ERROR)
-            await context.send(embed=embed)
-            return
-        embed = discord.Embed(description=f"Successfully unloaded the `{cog}` cog.", color=COLOR_DEFAULT)
-        await context.send(embed=embed)
+    async def unload(self, context, cog: str):
+        await self._manage_cog(context, cog, "unload")
 
     @commands.hybrid_command(name="reload", description="Reloads a cog.")
     @app_commands.describe(cog="The name of the cog to reload")
     @commands.is_owner()
-    async def reload(self, context: Context, cog: str) -> None:
-        try:
-            await self.bot.reload_extension(f"cogs.{cog}")
-        except Exception:
-            embed = discord.Embed(description=f"Could not reload the `{cog}` cog.", color=COLOR_ERROR)
-            await context.send(embed=embed)
-            return
-        embed = discord.Embed(description=f"Successfully reloaded the `{cog}` cog.", color=COLOR_DEFAULT)
-        await context.send(embed=embed)
+    async def reload(self, context, cog: str):
+        await self._manage_cog(context, cog, "reload")
 
     @commands.hybrid_command(name="shutdown", description="Make the bot shutdown.")
     @commands.is_owner()
-    async def shutdown(self, context: Context) -> None:
-        embed = discord.Embed(description="Shutting down. Bye! :wave:", color=COLOR_DEFAULT)
-        await context.send(embed=embed)
+    async def shutdown(self, context):
+        await context.send(embed=make_embed("Shutting down. Bye! :wave:"))
         await self.bot.close()
 
     @commands.hybrid_command(name="say", description="The bot will say anything you want.")
     @app_commands.describe(message="The message that should be repeated by the bot")
     @commands.is_owner()
-    async def say(self, context: Context, *, message: str) -> None:
+    async def say(self, context, *, message: str):
         await context.send(message)
 
     @commands.hybrid_command(name="embed", description="The bot will say anything you want, but within embeds.")
     @app_commands.describe(message="The message that should be repeated by the bot")
     @commands.is_owner()
-    async def embed(self, context: Context, *, message: str) -> None:
-        embed = discord.Embed(description=message, color=COLOR_DEFAULT)
-        await context.send(embed=embed)
+    async def embed(self, context, *, message: str):
+        await context.send(embed=make_embed(message))
 
     @commands.hybrid_command(name="servers", description="Lists all the servers the bot is in with an invite link.")
     @commands.is_owner()
-    async def servers(self, context: Context) -> None:
+    async def servers(self, context):
         if not self.bot.guilds:
-            embed = discord.Embed(description="The bot is not in any server.", color=COLOR_ERROR)
-            await context.send(embed=embed)
-            return
+            return await context.send(embed=make_embed("The bot is not in any server.", COLOR_ERROR))
 
         embed = discord.Embed(title=f"Servers ({len(self.bot.guilds)})", color=COLOR_ACCENT)
         for guild in sorted(self.bot.guilds, key=lambda g: g.name.lower()):
@@ -125,8 +106,7 @@ class Owner(commands.Cog, name="owner"):
             for channel in guild.text_channels:
                 if channel.permissions_for(guild.me).create_instant_invite:
                     try:
-                        invite = await channel.create_invite(max_age=0, max_uses=0, unique=False, reason="Owner requested server list")
-                        invite_url = invite.url
+                        invite_url = (await channel.create_invite(max_age=0, max_uses=0, unique=False)).url
                         break
                     except discord.HTTPException:
                         continue
@@ -140,44 +120,42 @@ class Owner(commands.Cog, name="owner"):
 
     @commands.hybrid_command(name="botinfo", description="Displays the bot's resource usage and general information.")
     @commands.is_owner()
-    async def botinfo(self, context: Context) -> None:
+    async def botinfo(self, context):
         process = psutil.Process()
         with process.oneshot():
-            cpu_usage = process.cpu_percent(interval=0.5)
-            ram_usage = process.memory_info().rss / (1024 * 1024)
-
-        uptime_seconds = time.time() - self.bot.start_time
-        uptime = str(datetime.timedelta(seconds=int(uptime_seconds)))
-
-        guild_count = len(self.bot.guilds)
+            cpu = process.cpu_percent(interval=0.5)
+            ram = process.memory_info().rss / (1024 * 1024)
+        uptime = str(datetime.timedelta(seconds=int(time.time() - self.bot.start_time)))
 
         embed = discord.Embed(title="Bot Information", color=COLOR_ACCENT)
-        embed.add_field(name="CPU Usage", value=f"{cpu_usage:.2f}%", inline=True)
-        embed.add_field(name="RAM Usage", value=f"{ram_usage:.2f} MB", inline=True)
-        embed.add_field(name="Uptime", value=uptime, inline=True)
-        embed.add_field(name="Servers", value=f"{guild_count}", inline=True)
-        embed.add_field(name="Discord.py Version", value=discord.__version__, inline=True)
-        embed.add_field(name="Python Version", value=platform.python_version(), inline=True)
-        embed.add_field(name="System", value=f"{platform.system()} {platform.release()}", inline=True)
+        fields = (
+            ("CPU Usage", f"{cpu:.2f}%"),
+            ("RAM Usage", f"{ram:.2f} MB"),
+            ("Uptime", uptime),
+            ("Servers", len(self.bot.guilds)),
+            ("Discord.py Version", discord.__version__),
+            ("Python Version", platform.python_version()),
+            ("System", f"{platform.system()} {platform.release()}"),
+        )
+        for name, value in fields:
+            embed.add_field(name=name, value=str(value))
         await context.send(embed=embed)
 
     @commands.hybrid_command(name="broadcast", description="Send a message to every server the bot is in.")
     @app_commands.describe(message="The message to broadcast")
     @commands.is_owner()
-    async def broadcast(self, context: Context, *, message: str) -> None:
+    async def broadcast(self, context, *, message: str):
         await context.defer()
-        embed = discord.Embed(description=message, color=COLOR_ACCENT)
-        sent = 0
-        failed = 0
+        embed = make_embed(message, COLOR_ACCENT)
+        sent = failed = 0
         for guild in self.bot.guilds:
             channel = guild.system_channel
-            if channel is None or not channel.permissions_for(guild.me).send_messages:
-                channel = None
-                for candidate in guild.text_channels:
-                    if candidate.permissions_for(guild.me).send_messages:
-                        channel = candidate
-                        break
-            if channel is None:
+            if not channel or not channel.permissions_for(guild.me).send_messages:
+                channel = next(
+                    (c for c in guild.text_channels if c.permissions_for(guild.me).send_messages),
+                    None,
+                )
+            if not channel:
                 failed += 1
                 continue
             try:
@@ -185,22 +163,16 @@ class Owner(commands.Cog, name="owner"):
                 sent += 1
             except discord.HTTPException:
                 failed += 1
-        result = discord.Embed(
-            description=f"Broadcast sent to {sent}/{len(self.bot.guilds)} server(s). Failed: {failed}.",
-            color=COLOR_DEFAULT,
-        )
-        await context.send(embed=result)
+        await context.send(embed=make_embed(
+            f"Broadcast sent to {sent}/{len(self.bot.guilds)} server(s). Failed: {failed}."
+        ))
 
     @commands.hybrid_command(name="setup_suggestions", description="Set the global channel where user suggestions will be sent.")
     @commands.is_owner()
-    async def setup_suggestions(self, context: Context, channel: discord.TextChannel) -> None:
+    async def setup_suggestions(self, context, channel: discord.TextChannel):
         await self.bot.database.set_owner_suggestion_channel(channel.id)
-        embed = discord.Embed(
-            description=f"Suggestion channel set to {channel.mention}.",
-            color=COLOR_ACCENT
-        )
-        await context.send(embed=embed)
+        await context.send(embed=make_embed(f"Suggestion channel set to {channel.mention}.", COLOR_ACCENT))
 
 
-async def setup(bot) -> None:
+async def setup(bot):
     await bot.add_cog(Owner(bot))

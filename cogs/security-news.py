@@ -10,8 +10,7 @@ from discord.ext import commands, tasks
 from helpers.colors import COLOR_ACCENT
 
 log = logging.getLogger("DarkSide.SecurityNews")
-
-MAX_ARTICLE_AGE_SECONDS = 3600
+MAX_AGE = 3600
 
 RSS_FEEDS = {
     "CERT-FR (ANSSI)": "https://www.cert.ssi.gouv.fr/feed/",
@@ -48,130 +47,107 @@ RSS_FEEDS = {
     "GBHackers": "https://gbhackers.com/feed/",
 }
 
-class SecurityNews(commands.Cog, name="security_news"):
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
-        self._target_channels: dict[int, int] = {}
-        self._published_articles: set[str] = set()
-        self._boot_done: bool = False
-        self.fetch_security_news.start()
 
-    def cog_unload(self) -> None:
-        self.fetch_security_news.cancel()
+class SecurityNews(commands.Cog, name="security_news"):
+    def __init__(self, bot):
+        self.bot = bot
+        self._channels = {}
+        self._seen = set()
+        self._boot_done = False
+        self.fetch.start()
+
+    def cog_unload(self):
+        self.fetch.cancel()
+
+    async def _mark(self, entry_id):
+        self._seen.add(entry_id)
+        await self.bot.database.set_secnews_published(entry_id)
 
     @commands.group(name="secnews", invoke_without_command=True, description="Gère les flux d'actualités cybersécurité.")
     @commands.has_permissions(administrator=True)
-    async def secnews(self, ctx: commands.Context) -> None:
-        prefix = ctx.prefix
-        embed = discord.Embed(
+    async def secnews(self, ctx):
+        await ctx.send(embed=discord.Embed(
             title="Configuration - Actualités Cybersécurité",
-            description=f"Utilisez `{prefix}secnews setchannel #channel` pour définir le salon des actualités.",
-            color=COLOR_ACCENT
-        )
-        await ctx.send(embed=embed, delete_after=20)
+            description=f"Utilisez `{ctx.prefix}secnews setchannel #channel` pour définir le salon des actualités.",
+            color=COLOR_ACCENT,
+        ), delete_after=20)
 
     @secnews.command(name="setchannel", description="Définit le salon où les actualités seront publiées.")
     @commands.has_permissions(administrator=True)
-    async def secnews_setchannel(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
+    async def secnews_setchannel(self, ctx, channel: discord.TextChannel):
         await self.bot.database.set_secnews_channel(ctx.guild.id, channel.id)
-        self._target_channels[ctx.guild.id] = channel.id
-        embed = discord.Embed(
+        self._channels[ctx.guild.id] = channel.id
+        await ctx.send(embed=discord.Embed(
             title="Salon configuré",
             description=f"Les actualités cybersécurité seront désormais envoyées dans {channel.mention}.",
-            color=COLOR_ACCENT
-        )
-        await ctx.send(embed=embed)
+            color=COLOR_ACCENT,
+        ))
 
     @secnews.command(name="test", description="Force une vérification immédiate de tous les flux.")
     @commands.has_permissions(administrator=True)
-    async def secnews_test(self, ctx: commands.Context) -> None:
-        if ctx.guild.id not in self._target_channels:
-            embed = discord.Embed(
+    async def secnews_test(self, ctx):
+        if ctx.guild.id not in self._channels:
+            return await ctx.send(embed=discord.Embed(
                 description="Aucun salon n'est configuré. Utilisez d'abord `secnews setchannel #channel`.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
-        await ctx.send("Vérification des flux en cours, cela peut prendre quelques secondes...", delete_after=10)
-        await self.fetch_security_news()
-        embed = discord.Embed(
+                color=discord.Color.red(),
+            ))
+        await ctx.send("Vérification des flux en cours...", delete_after=10)
+        await self.fetch()
+        await ctx.send(embed=discord.Embed(
             description="Vérification terminée. Si aucun nouvel article n'apparaît, tous les flux étaient déjà à jour.",
-            color=COLOR_ACCENT
-        )
-        await ctx.send(embed=embed)
+            color=COLOR_ACCENT,
+        ))
 
     @tasks.loop(minutes=20)
-    async def fetch_security_news(self) -> None:
-        if not self._target_channels:
+    async def fetch(self):
+        if not self._channels:
             return
+        catchup, now = not self._boot_done, time.time()
 
-        catchup = not self._boot_done
-        now = time.time()
-
-        for source_name, feed_url in RSS_FEEDS.items():
+        for source, url in RSS_FEEDS.items():
             try:
-                feed = await asyncio.to_thread(feedparser.parse, feed_url)
-                if not feed.entries:
-                    continue
-
-                new_entries = []
+                feed = await asyncio.to_thread(feedparser.parse, url)
+                fresh = []
                 for entry in feed.entries:
                     entry_id = entry.get("id", entry.get("link"))
-                    if not entry_id:
+                    if not entry_id or entry_id in self._seen:
                         continue
-                    if entry_id in self._published_articles:
-                        continue
-
                     published = entry.get("published_parsed") or entry.get("updated_parsed")
-                    is_too_old = False
-                    if published is not None:
-                        is_too_old = now - calendar.timegm(published) > MAX_ARTICLE_AGE_SECONDS
-
-                    if catchup and (published is None or is_too_old):
-                        self._published_articles.add(entry_id)
-                        await self.bot.database.set_secnews_published(entry_id)
+                    too_old = published is not None and now - calendar.timegm(published) > MAX_AGE
+                    if catchup and (published is None or too_old):
+                        await self._mark(entry_id)
                         continue
+                    fresh.append(entry)
 
-                    new_entries.append(entry)
-
-                if not new_entries:
+                if not fresh:
                     continue
 
-                for entry in new_entries:
-                    entry_id = entry.get("id", entry.get("link"))
-                    if entry_id:
-                        self._published_articles.add(entry_id)
-                        await self.bot.database.set_secnews_published(entry_id)
+                for entry in fresh:
+                    await self._mark(entry.get("id", entry.get("link")))
 
-                for entry in reversed(new_entries):
-                    summary = getattr(entry, "summary", "")
+                for entry in reversed(fresh):
                     embed = discord.Embed(
                         title=entry.title,
                         url=entry.link,
-                        description=f"{summary[:350]}...\n\n[Lire l'article complet]({entry.link})",
-                        color=COLOR_ACCENT
+                        description=f"{getattr(entry, 'summary', '')[:350]}...\n\n[Lire l'article complet]({entry.link})",
+                        color=COLOR_ACCENT,
                     )
-                    embed.set_footer(text=f"Source : {source_name} | DarkSide SecIntel")
-
-                    for guild_id, channel_id in self._target_channels.items():
-                        channel = self.bot.get_channel(channel_id)
-                        if channel:
+                    embed.set_footer(text=f"Source : {source} | DarkSide SecIntel")
+                    for channel_id in self._channels.values():
+                        if channel := self.bot.get_channel(channel_id):
                             await channel.send(embed=embed)
-
             except Exception as e:
-                log.error(f"Erreur lors de la récupération du flux '{source_name}' : {e}")
+                log.error(f"Erreur lors de la récupération du flux '{source}' : {e}")
 
         if catchup:
             self._boot_done = True
 
-    @fetch_security_news.before_loop
-    async def before_fetch_security_news(self) -> None:
+    @fetch.before_loop
+    async def before_fetch(self):
         await self.bot.wait_until_ready()
-        self._target_channels = await self.bot.database.get_secnews_channels()
-        self._published_articles = await self.bot.database.get_secnews_published()
+        self._channels = await self.bot.database.get_secnews_channels()
+        self._seen = await self.bot.database.get_secnews_published()
 
 
-async def setup(bot: commands.Bot) -> None:
+async def setup(bot):
     await bot.add_cog(SecurityNews(bot))
-
-# Made by kam
